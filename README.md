@@ -118,29 +118,26 @@ The onboarding setup asks for this ID so that only you can send messages to your
 
 ## Changing the Model
 
-Edit `.env` and change `OPENROUTER_MODEL`:
+1. Edit `.env` and update `OPENROUTER_MODEL`:
+   ```bash
+   nano ~/.env
+   # Example: OPENROUTER_MODEL=anthropic/claude-3-5-haiku
+   ```
 
-```bash
-nano .env
-# Change OPENROUTER_MODEL=google/gemini-2.0-flash-001 to your preferred model
-```
+2. Restart the agent for the change to take effect:
+   ```bash
+   # Terminal mode
+   cd ~/molluskai
+   source venv/bin/activate
+   python agent.py
 
-Then restart the agent:
+   # If running as a service
+   systemctl --user restart molluskai
+   ```
 
-```bash
-# Terminal mode (activate venv first if you used one)
-cd ~/molluskai
-source venv/bin/activate
-python agent.py
+The current model is shown at startup (`MolluskAI ready  •  model: ...`) and in the `help` command output.
 
-# If running as a service
-systemctl --user restart molluskai
-```
-
-You can also tell the agent which model you want at runtime:
-> *"What model are you using?"* — the agent will tell you from the help command.
-
-To see all available models in OpenRouter, use the onboarding GUI's **Fetch models** button, or visit [openrouter.ai/models](https://openrouter.ai/models).
+To browse available models, use the **Fetch models** button in the onboarding GUI (`setup` command), or visit [openrouter.ai/models](https://openrouter.ai/models).
 
 ---
 
