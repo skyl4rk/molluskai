@@ -193,6 +193,16 @@ The skill is live immediately — no restart needed.
 
 You can also write or edit skill files manually in the `skills/` directory with any text editor.
 
+### Included skills
+
+| Skill | What it does |
+|-------|-------------|
+| `how_to_write_a_skill.md` | Guide for the agent on writing new skills |
+| `pdf_ingestion.md` | Instructions for ingesting and querying PDF files |
+| `cost_report.md` | Report on AI usage costs from the usage log |
+| `idea_capture.md` | Capture and organise ideas by project; retrieve by theme |
+| `web_monitor.md` | Generate daily keyword monitoring tasks for news, HN, Reddit, or any URL |
+
 ---
 
 ## Creating Tasks with AI
