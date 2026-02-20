@@ -12,10 +12,11 @@ Inspired by [PicoClaw](https://github.com/sipeed/picoclaw).
 ## Features
 
 - **OpenRouter integration** — access Gemini, Claude, GPT, Llama, Mistral, and more with one API key
-- **Telegram gateway** — send and receive messages from your phone, send PDF files to ingest
+- **Telegram gateway** — send messages, PDFs, and voice notes from your phone
+- **Voice messages** — Telegram voice notes are transcribed locally via Whisper and sent to the agent
 - **Vector memory** — conversations and documents stored locally and recalled semantically
 - **Skills** — markdown files that teach the agent new behaviours; the agent can write them for you
-- **Tasks** — Python scripts that run on a schedule with zero AI API cost
+- **Tasks** — Python scripts that run on a schedule with zero AI API cost; enable/disable without restarting
 - **Low cost** — three-layer context (identity + relevant memories + recent turns) keeps each call to ~3,000 tokens
 - **Readable code** — written to be understood and extended; ideal for learning on Raspberry Pi
 
@@ -38,8 +39,6 @@ The installer clones the repo, creates a virtual environment, and installs all d
 - Python 3.9 or later
 - An [OpenRouter API key](https://openrouter.ai/keys)
 - A Telegram bot token *(optional)* — create one with [@BotFather](https://t.me/BotFather)
-
----
 
 ---
 
@@ -222,7 +221,13 @@ you> yes
 agent> Saved task: craigslist_bikes.py
 ```
 
-After saving, **enable the task** by editing the file:
+After saving, **review the code**, then enable the task with a command — no restart needed:
+
+```
+enable task: craigslist_bikes
+```
+
+Or enable it manually by editing the file header:
 
 ```bash
 nano tasks/craigslist_bikes.py
@@ -230,19 +235,7 @@ nano tasks/craigslist_bikes.py
 # To:      # ENABLED: true
 ```
 
-Then restart the agent so the scheduler picks it up:
-
-```bash
-# Terminal mode (activate venv first if you used one)
-cd ~/molluskai
-source venv/bin/activate
-python agent.py
-
-# If running as a service
-systemctl --user restart molluskai
-```
-
-> **Review before enabling.** Read through the generated code before setting ENABLED: true, especially for tasks that send messages, access the network, or perform system operations.
+> **Review before enabling.** Read through the generated code before enabling, especially for tasks that send messages, access the network, or perform system operations.
 
 ---
 
@@ -273,29 +266,19 @@ Create a `.py` file in `tasks/` with a metadata header. Example — `tasks/ping_
 # ENABLED: false
 # DESCRIPTION: Pings a host and sends an alert to Telegram if it fails
 
-import sys, os, subprocess
-from pathlib import Path
-PROJECT_DIR = Path(__file__).parent.parent
-sys.path.insert(0, str(PROJECT_DIR))
+import subprocess
+import requests
+import config  # project root is on sys.path automatically
 
 def run():
-    import requests
-    from dotenv import load_dotenv
-    load_dotenv(PROJECT_DIR / ".env")
-
     result = subprocess.run(["ping", "-c", "1", "8.8.8.8"], capture_output=True)
     if result.returncode != 0:
-        token   = os.getenv("TELEGRAM_TOKEN", "")
-        chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
-        if token and chat_id:
+        if config.TELEGRAM_TOKEN and config.TELEGRAM_CHAT_ID:
             requests.post(
-                f"https://api.telegram.org/bot{token}/sendMessage",
-                json={"chat_id": chat_id, "text": "Network unreachable!"},
+                f"https://api.telegram.org/bot{config.TELEGRAM_TOKEN}/sendMessage",
+                json={"chat_id": config.TELEGRAM_CHAT_ID, "text": "Network unreachable!"},
                 timeout=5,
             )
-
-if __name__ == "__main__":
-    run()
 ```
 
 Supported schedule strings:
@@ -396,7 +379,7 @@ If `TELEGRAM_ALLOWED_USERS` is left empty, **all users can interact** with the b
 | Modify system files | **No** | Yes (if scripted) |
 | Accept messages from anyone on Telegram | **No** | N/A |
 
-Tasks that perform system actions must be **manually enabled** by editing the file header. The LLM cannot enable tasks.
+Tasks can be enabled via the `enable task: <name>` command or by editing the file header — the LLM cannot enable tasks on its own.
 
 ### Network Exposure
 
@@ -432,7 +415,7 @@ If you installed using the one-line wget method, the `install.sh` script remains
 rm ~/install.sh
 ```
 
-### 3. Revoke API keys (recommended)
+### 4. Revoke API keys (recommended)
 
 - **OpenRouter:** Go to [openrouter.ai/keys](https://openrouter.ai/keys) and delete the key
 - **Telegram:** Message @BotFather and send `/deletebot`
@@ -450,6 +433,7 @@ molluskai/
 ├── onboarding.py      # First-run setup (tkinter GUI or terminal prompts)
 ├── telegram_bot.py    # Telegram polling gateway
 ├── scheduler.py       # Task discovery and scheduling
+├── transcribe.py      # Voice message transcription (faster-whisper)
 ├── IDENTITY.md        # Agent persona / system prompt
 ├── skills/            # AI prompt templates (markdown, edit freely)
 │   ├── how_to_write_a_skill.md
