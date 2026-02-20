@@ -26,11 +26,7 @@ When the user asks you to create or edit a task (a scheduled Python script), wri
 # ENABLED: false
 # DESCRIPTION: What this task does
 
-import sys
-from pathlib import Path
-PROJECT_DIR = Path(__file__).parent.parent
-sys.path.insert(0, str(PROJECT_DIR))
-import config
+import config  # project root is on sys.path automatically — no path setup needed
 
 def run():
     # Task code here — runs without LLM credits.

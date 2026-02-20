@@ -80,6 +80,13 @@ def _run_task(path: Path) -> None:
     Load a task script and call its run() function.
     Errors are caught so a broken task doesn't crash the scheduler.
     """
+    import sys
+    # Ensure the project root is on sys.path so tasks can import config etc.
+    # Tasks do not need to add this themselves.
+    project_root = str(path.parent.parent)
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+
     spec   = importlib.util.spec_from_file_location("task_module", path)
     module = importlib.util.module_from_spec(spec)
     try:
