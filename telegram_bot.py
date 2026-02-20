@@ -13,10 +13,14 @@
 # inside a dedicated daemon thread, so it doesn't block the terminal.
 
 import asyncio
+import logging
 import threading
 from pathlib import Path
 
 import config
+
+# Suppress httpx INFO logs — they print the full bot token URL on every poll.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 DENIED_MESSAGE = (
     "Sorry, I'm a private assistant. "

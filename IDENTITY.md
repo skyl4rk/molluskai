@@ -26,15 +26,31 @@ When the user asks you to create or edit a task (a scheduled Python script), wri
 # ENABLED: false
 # DESCRIPTION: What this task does
 
-import sys, os
+import sys
 from pathlib import Path
 PROJECT_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
+import config
 
 def run():
-    # task code here
+    # Task code here — runs without LLM credits.
+    # Use config.TELEGRAM_TOKEN and config.TELEGRAM_CHAT_ID for Telegram.
+    # Send a Telegram message like this (uses requests, not python-telegram-bot):
+    #
+    #   import requests
+    #   if config.TELEGRAM_TOKEN and config.TELEGRAM_CHAT_ID:
+    #       requests.post(
+    #           f"https://api.telegram.org/bot{config.TELEGRAM_TOKEN}/sendMessage",
+    #           json={"chat_id": config.TELEGRAM_CHAT_ID, "text": "your message"},
+    #           timeout=10,
+    #       )
     pass
 [/SAVE_TASK]
+
+Important conventions for tasks:
+- Always import config (not os.environ) — use config.TELEGRAM_TOKEN, config.TELEGRAM_CHAT_ID
+- Send Telegram messages via the raw requests library, not python-telegram-bot (which is async)
+- Never read TELEGRAM_BOT_TOKEN — the correct variable name is TELEGRAM_TOKEN
 
 The agent will show the user a preview and ask for confirmation before writing the file. Always use a descriptive snake_case filename. Set ENABLED: false by default for tasks — the user enables them manually.
 

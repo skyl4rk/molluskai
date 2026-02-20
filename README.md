@@ -184,7 +184,9 @@ nano .env
 Then restart the agent:
 
 ```bash
-# Terminal mode
+# Terminal mode (activate venv first if you used one)
+cd ~/molluskai
+source venv/bin/activate
 python agent.py
 
 # If running as a service
@@ -281,8 +283,13 @@ nano tasks/craigslist_bikes.py
 Then restart the agent so the scheduler picks it up:
 
 ```bash
+# Terminal mode (activate venv first if you used one)
+cd ~/molluskai
+source venv/bin/activate
 python agent.py
-# or: systemctl --user restart molluskai
+
+# If running as a service
+systemctl --user restart molluskai
 ```
 
 > **Review before enabling.** Read through the generated code before setting ENABLED: true, especially for tasks that send messages, access the network, or perform system operations.
@@ -355,12 +362,16 @@ Run MolluskAI automatically when the Raspberry Pi boots using a systemd user ser
 
 ### 1. Create the service file
 
+> **Note:** `~/.config/systemd/user` is the standard systemd path — `user` is a literal
+> directory name, not a placeholder. The `~` expands to your home directory automatically.
+
 ```bash
 mkdir -p ~/.config/systemd/user
 nano ~/.config/systemd/user/molluskai.service
 ```
 
-Paste this content (adjust the path to match your install location and whether you used a venv):
+Paste this content — **replace `/home/pi/` with your actual home directory path**
+(e.g. `/home/historian/`). Run `echo $HOME` if you're not sure what it is.
 
 ```ini
 [Unit]
@@ -368,12 +379,9 @@ Description=MolluskAI Agent
 After=network.target
 
 [Service]
-# If using a virtual environment:
+# Replace /home/pi/ with your actual home directory (e.g. /home/historian/)
 WorkingDirectory=/home/pi/molluskai
 ExecStart=/home/pi/molluskai/venv/bin/python agent.py --no-terminal
-
-# If NOT using a virtual environment:
-# ExecStart=/usr/bin/python3 /home/pi/molluskai/agent.py --no-terminal
 
 Restart=on-failure
 RestartSec=10
@@ -383,6 +391,8 @@ WantedBy=default.target
 ```
 
 ### 2. Enable and start the service
+
+Replace `pi` with your actual username in the `loginctl` command:
 
 ```bash
 systemctl --user enable molluskai

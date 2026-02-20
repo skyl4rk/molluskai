@@ -152,16 +152,17 @@ def _run_gui() -> None:
     # --- Row 6: User ID ---
     tg_uid_var, tg_uid_entry = labelled_entry(6, "Your Telegram User ID:", state="disabled")
 
-    # --- Row 7: hint ---
+    # --- Row 7: hint (spans both columns so it never clips) ---
     tg_hint = tk.Label(
         frame,
         text="Find your user ID: open Telegram, search @userinfobot, send any message.",
         fg="grey",
         font=("TkDefaultFont", 8),
-        wraplength=380,
+        wraplength=540,
         justify="left",
+        anchor="w",
     )
-    tg_hint.grid(row=7, column=1, sticky="w", padx=8, pady=(0, 4))
+    tg_hint.grid(row=7, column=0, columnspan=2, sticky="w", padx=8, pady=(0, 4))
 
     tg_widgets = [tg_token_entry, tg_uid_entry, tg_hint]
 
