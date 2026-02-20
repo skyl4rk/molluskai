@@ -1,0 +1,26 @@
+# MolluskAI dependencies
+#
+# Install with: pip install -r requirements.txt
+#
+# ARM64 note: sqlite-vec may need to be built from source if no wheel is available.
+# If 'pip install sqlite-vec' fails, ensure gcc and make are installed:
+#   sudo apt install gcc make
+# The agent will fall back to numpy cosine similarity if sqlite-vec is unavailable.
+
+# Core
+requests
+python-dotenv
+
+# Telegram gateway
+python-telegram-bot>=20.0
+
+# Task scheduler
+schedule
+
+# Vector memory (optional but recommended)
+fastembed
+sqlite-vec
+
+# Document ingestion
+beautifulsoup4
+pymupdf

@@ -1,0 +1,557 @@
+# MolluskAI
+
+> A minimal, open-source AI agent for Raspberry Pi 4/5.
+> Connects to [OpenRouter](https://openrouter.ai) for LLM access, stores memory locally, and is reachable by terminal or Telegram.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+Inspired by [PicoClaw](https://github.com/sipeed/picoclaw).
+
+---
+
+## Features
+
+- **OpenRouter integration** — access Gemini, Claude, GPT, Llama, Mistral, and more with one API key
+- **Telegram gateway** — send and receive messages from your phone, send PDF files to ingest
+- **Vector memory** — conversations and documents stored locally and recalled semantically
+- **Skills** — markdown files that teach the agent new behaviours; the agent can write them for you
+- **Tasks** — Python scripts that run on a schedule with zero AI API cost
+- **Low cost** — three-layer context (identity + relevant memories + recent turns) keeps each call to ~3,000 tokens
+- **Readable code** — written to be understood and extended; ideal for learning on Raspberry Pi
+
+---
+
+## Download & Install
+
+**Option 1 — One-line installer (git, wget, or curl):**
+```bash
+wget https://raw.githubusercontent.com/skyl4rk/molluskai/main/install.sh
+chmod +x install.sh && ./install.sh
+```
+The installer clones the repo, creates a virtual environment, and installs all dependencies.
+
+**Option 2 — Direct zip download with wget:**
+```bash
+wget https://github.com/skyl4rk/molluskai/archive/refs/heads/main.zip
+unzip main.zip
+cd molluskai-main
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+python agent.py
+```
+
+**Option 3 — Release zip** *(if a release zip is hosted separately)*:
+```bash
+wget https://your-server/molluskai-dist.zip
+unzip molluskai-dist.zip
+cd molluskai
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+python agent.py
+```
+
+> Build a release zip locally at any time with: `./make_dist.sh`
+
+---
+
+## Requirements
+
+- Raspberry Pi 4 or 5 running **Raspberry Pi OS 64-bit** (full desktop for GUI onboarding; Lite works in terminal mode)
+- Python 3.9 or later
+- An [OpenRouter API key](https://openrouter.ai/keys)
+- A Telegram bot token *(optional)* — create one with [@BotFather](https://t.me/BotFather)
+
+---
+
+## Installation
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/skyl4rk/molluskai.git
+cd molluskai
+```
+
+### 2. Create a virtual environment (recommended)
+
+Using a virtual environment keeps MolluskAI's dependencies separate from the rest of your system and makes uninstalling straightforward.
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+> **Note:** You need to activate the virtual environment each time you open a new terminal:
+> ```bash
+> source venv/bin/activate
+> ```
+> Your prompt will show `(venv)` when it is active.
+
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+#### sqlite-vec on ARM64
+
+`sqlite-vec` may not have a pre-built ARM64 wheel. If the install fails:
+
+```bash
+sudo apt install gcc make libsqlite3-dev
+pip install sqlite-vec
+```
+
+If it still fails, MolluskAI will automatically fall back to numpy cosine similarity — no manual action needed.
+
+#### tkinter (GUI onboarding)
+
+Tkinter is included in Raspberry Pi OS full desktop. If you are on the Lite image:
+
+```bash
+sudo apt install python3-tk
+```
+
+Without tkinter, the setup runs as terminal prompts instead.
+
+---
+
+## First Run
+
+```bash
+python agent.py
+```
+
+On first run (no `.env` file found), the **onboarding setup** launches:
+
+**GUI (desktop):** A window appears with fields for your credentials.
+
+**Terminal (headless/SSH):** You are prompted for each value in sequence.
+
+You will be asked for:
+
+| Field | Required | Where to get it |
+|-------|----------|----------------|
+| OpenRouter API Key | Yes | [openrouter.ai/keys](https://openrouter.ai/keys) |
+| Model | Yes | Choose from the dropdown or type any OpenRouter model ID |
+| Telegram Bot Token | Optional | Message [@BotFather](https://t.me/BotFather) on Telegram |
+| Allowed Telegram User IDs | Recommended | Message [@userinfobot](https://t.me/userinfobot) — comma-separated for multiple users |
+| Telegram Chat ID | Optional | Same as your user ID for personal use; used for outbound task notifications |
+
+Your credentials are saved to `.env` with permissions set to `600` (owner only).
+
+---
+
+## Terminal Commands
+
+| Command | What it does | AI cost |
+|---------|-------------|---------|
+| `help` or `?` | Show all commands | None |
+| `skills` | List skill files | None |
+| `tasks` | List task files with schedule | None |
+| `search: <topic>` | Search your memory | None |
+| `ingest: <url>` | Fetch and store a web page | None |
+| `ingest pdf: <path>` | Extract and store a PDF file | None |
+| `<bare url>` | Same as `ingest:` | None |
+| `exit` or `quit` | Exit the agent | None |
+| *anything else* | Sent to the AI | Yes |
+
+---
+
+## Changing the Model
+
+Edit `.env` and change `OPENROUTER_MODEL`:
+
+```bash
+nano .env
+# Change OPENROUTER_MODEL=google/gemini-2.0-flash-001 to your preferred model
+```
+
+Then restart the agent:
+
+```bash
+# Terminal mode
+python agent.py
+
+# If running as a service
+systemctl --user restart molluskai
+```
+
+You can also tell the agent which model you want at runtime:
+> *"What model are you using?"* — the agent will tell you from the help command.
+
+To see all available models in OpenRouter, use the onboarding GUI's **Fetch models** button, or visit [openrouter.ai/models](https://openrouter.ai/models).
+
+---
+
+## Creating Skills with AI
+
+A **skill** is a markdown file in `skills/` that tells the agent how to handle a specific type of request. Skills are loaded into the system prompt at startup.
+
+You can ask the agent to write a skill for you. The agent generates the skill content and asks for your confirmation before saving.
+
+### Example
+
+```
+you> Create a skill: Any time I send a link to an HTML page,
+     convert that page to text and store it in the database.
+
+agent> Here is a skill for automatic URL ingestion.
+
+       ──────────────────────────────
+       Ready to save skill: html_ingestion.md
+       ──────────────────────────────
+       # HTML Page Ingestion
+
+       When the user sends a URL starting with http or https,
+       respond by calling:
+
+           ingest: <url>
+
+       The agent will fetch the page, strip HTML, and store the
+       text automatically.
+       ──────────────────────────────
+       Reply yes to save, no to cancel.
+
+you> yes
+
+agent> Saved skill: html_ingestion.md
+       Path: skills/html_ingestion.md
+```
+
+The skill is live immediately — no restart needed.
+
+You can also write or edit skill files manually in the `skills/` directory with any text editor.
+
+---
+
+## Creating Tasks with AI
+
+A **task** is a Python script in `tasks/` that runs on a schedule without any AI API calls.
+
+Ask the agent to write a task for you. It generates the code with its metadata header and asks for confirmation before saving.
+
+### Example
+
+```
+you> Create a task: Search Craigslist for bicycles for sale near
+     zip code 34567, under $200, send me the top 10 results to
+     Telegram with an HTML link for each one.
+
+agent> Here is a task that does this.
+
+       ──────────────────────────────
+       Ready to save task: craigslist_bikes.py
+       ──────────────────────────────
+       # TASK: Craigslist Bike Search
+       # SCHEDULE: every day at 09:00
+       # ENABLED: false
+       # DESCRIPTION: Search Craigslist for bikes under $200...
+       ...
+       ──────────────────────────────
+       Reply yes to save, no to cancel.
+
+you> yes
+
+agent> Saved task: craigslist_bikes.py
+```
+
+After saving, **enable the task** by editing the file:
+
+```bash
+nano tasks/craigslist_bikes.py
+# Change:  # ENABLED: false
+# To:      # ENABLED: true
+```
+
+Then restart the agent so the scheduler picks it up:
+
+```bash
+python agent.py
+# or: systemctl --user restart molluskai
+```
+
+> **Review before enabling.** Read through the generated code before setting ENABLED: true, especially for tasks that send messages, access the network, or perform system operations.
+
+---
+
+## Writing Skills and Tasks Manually
+
+### Writing a Skill
+
+Create any `.md` file in `skills/`. Example — `skills/morning_summary.md`:
+
+```markdown
+# Morning Summary
+
+When the user says "morning" or asks for a morning briefing:
+- Check data/usage.log for yesterday's token count
+- Give a 2-sentence summary of any topics discussed yesterday (from memory)
+- Keep the response under 5 lines
+```
+
+Skills are plain text — edit them in any text editor. Changes take effect on the next agent start.
+
+### Writing a Task
+
+Create a `.py` file in `tasks/` with a metadata header. Example — `tasks/ping_check.py`:
+
+```python
+# TASK: Network Ping Check
+# SCHEDULE: every 30 minutes
+# ENABLED: false
+# DESCRIPTION: Pings a host and sends an alert to Telegram if it fails
+
+import sys, os, subprocess
+from pathlib import Path
+PROJECT_DIR = Path(__file__).parent.parent
+sys.path.insert(0, str(PROJECT_DIR))
+
+def run():
+    import requests
+    from dotenv import load_dotenv
+    load_dotenv(PROJECT_DIR / ".env")
+
+    result = subprocess.run(["ping", "-c", "1", "8.8.8.8"], capture_output=True)
+    if result.returncode != 0:
+        token   = os.getenv("TELEGRAM_TOKEN", "")
+        chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
+        if token and chat_id:
+            requests.post(
+                f"https://api.telegram.org/bot{token}/sendMessage",
+                json={"chat_id": chat_id, "text": "Network unreachable!"},
+                timeout=5,
+            )
+
+if __name__ == "__main__":
+    run()
+```
+
+Supported schedule strings:
+- `every day at 08:00`
+- `every hour`
+- `every 30 minutes`
+- `every 10 seconds` *(good for testing)*
+
+---
+
+## Auto-Start on Boot
+
+Run MolluskAI automatically when the Raspberry Pi boots using a systemd user service.
+
+### 1. Create the service file
+
+```bash
+mkdir -p ~/.config/systemd/user
+nano ~/.config/systemd/user/molluskai.service
+```
+
+Paste this content (adjust the path to match your install location and whether you used a venv):
+
+```ini
+[Unit]
+Description=MolluskAI Agent
+After=network.target
+
+[Service]
+# If using a virtual environment:
+WorkingDirectory=/home/pi/molluskai
+ExecStart=/home/pi/molluskai/venv/bin/python agent.py --no-terminal
+
+# If NOT using a virtual environment:
+# ExecStart=/usr/bin/python3 /home/pi/molluskai/agent.py --no-terminal
+
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
+```
+
+### 2. Enable and start the service
+
+```bash
+systemctl --user enable molluskai
+systemctl --user start molluskai
+sudo loginctl enable-linger pi
+```
+
+`loginctl enable-linger` allows user services to run without an active login session (i.e., after a reboot with no one logged in).
+
+### 3. Manage the service
+
+```bash
+systemctl --user status molluskai      # Check if running
+systemctl --user stop molluskai        # Stop
+systemctl --user restart molluskai     # Restart (e.g. after changing .env or adding tasks)
+journalctl --user -u molluskai -f      # Watch live logs
+```
+
+The `--no-terminal` flag runs the agent headlessly — Telegram and scheduler only, no terminal prompt.
+
+---
+
+## Security
+
+### Credentials (`.env` file)
+
+All API keys are stored in `.env`. This file is created with `chmod 600` (only the owner can read or write it) automatically by the setup. It is excluded from git via `.gitignore`.
+
+- Never share your `.env` file
+- Never commit it to a public repository
+- If you suspect a key is compromised, rotate it at [openrouter.ai/keys](https://openrouter.ai/keys) or via @BotFather
+
+### Telegram Access Control
+
+Only Telegram users listed in `TELEGRAM_ALLOWED_USERS` (in `.env`) can interact with the bot. Any message from an unlisted user ID receives:
+
+> *"Sorry, I'm a private assistant. Access is not permitted."*
+
+Find your Telegram user ID by messaging [@userinfobot](https://t.me/userinfobot).
+
+If `TELEGRAM_ALLOWED_USERS` is left empty, **all users can interact** with the bot — not recommended.
+
+### What the Agent Can and Cannot Do
+
+| Action | Agent (LLM) | Tasks (scripts) |
+|--------|-------------|-----------------|
+| Read/write `skills/` and `tasks/` | Yes (with confirmation) | Yes |
+| Read/write `data/` (memory DB, logs) | Yes | Yes |
+| Run shell commands | **No** | Yes (use with caution) |
+| Reboot the device | **No** | Yes (if scripted) |
+| Modify system files | **No** | Yes (if scripted) |
+| Accept messages from anyone on Telegram | **No** | N/A |
+
+Tasks that perform system actions must be **manually enabled** by editing the file header. The LLM cannot enable tasks.
+
+### Network Exposure
+
+MolluskAI uses Telegram **polling** (outbound requests from the Pi to Telegram's servers). It does not open any listening ports. Your Raspberry Pi does not need to be exposed to the internet.
+
+---
+
+## Uninstalling
+
+### 1. Stop and remove the service (if enabled)
+
+```bash
+systemctl --user stop molluskai
+systemctl --user disable molluskai
+rm ~/.config/systemd/user/molluskai.service
+systemctl --user daemon-reload
+```
+
+### 2. Delete the project directory
+
+```bash
+# Replace /home/pi/molluskai with your actual install path
+rm -rf /home/pi/molluskai
+```
+
+This removes everything: the code, the memory database, the usage log, and the `.env` credentials.
+
+### 3. Revoke API keys (recommended)
+
+- **OpenRouter:** Go to [openrouter.ai/keys](https://openrouter.ai/keys) and delete the key
+- **Telegram:** Message @BotFather and send `/deletebot`
+
+---
+
+## Project Structure
+
+```
+molluskai/
+├── agent.py           # Entry point and main loop
+├── config.py          # Settings loader (.env → module constants)
+├── llm.py             # OpenRouter API calls and usage logging
+├── memory.py          # Vector memory (sqlite-vec + fastembed, with fallbacks)
+├── onboarding.py      # First-run setup (tkinter GUI or terminal prompts)
+├── telegram_bot.py    # Telegram polling gateway
+├── scheduler.py       # Task discovery and scheduling
+├── IDENTITY.md        # Agent persona / system prompt
+├── skills/            # AI prompt templates (markdown, edit freely)
+│   ├── how_to_write_a_skill.md
+│   ├── pdf_ingestion.md
+│   └── cost_report.md
+├── tasks/             # Local automation scripts (Python, edit freely)
+│   ├── README.md
+│   └── daily_report.py
+├── data/              # Database and logs (auto-created, not committed)
+│   ├── memory.db
+│   └── usage.log
+├── .env               # Your credentials (never committed)
+├── .env.example       # Template
+├── .gitignore
+├── LICENSE            # MIT
+├── FEASIBILITY.md     # Project feasibility analysis
+├── IMPLEMENTATION.md  # Implementation notes
+└── requirements.txt
+```
+
+---
+
+## How Memory Works
+
+Every conversation is stored in `data/memory.db` (SQLite). When you send a message:
+
+1. Your message is embedded locally using `BAAI/bge-small-en-v1.5` (~24MB, runs on-device)
+2. The 5 most relevant past memories are retrieved
+3. The last 15 conversation turns are included
+4. Everything is assembled into a ~3,000-token prompt
+5. The response is stored as a new memory
+
+Use `search: <topic>` to retrieve memories on demand.
+
+**Ingesting documents:**
+```
+ingest: https://example.com/article
+ingest pdf: /home/pi/documents/report.pdf
+```
+
+---
+
+## Troubleshooting
+
+**`sqlite-vec` won't install on ARM64**
+```bash
+sudo apt install gcc make libsqlite3-dev
+pip install sqlite-vec
+```
+The agent still works without it — it falls back to numpy automatically.
+
+**`fastembed` is slow on first run**
+It downloads the embedding model (~24MB) once. All subsequent starts are fast.
+
+**Telegram bot not responding**
+- Check `TELEGRAM_TOKEN` is set in `.env`
+- Check your Telegram user ID is in `TELEGRAM_ALLOWED_USERS`
+- Run `systemctl --user status molluskai` to check for errors
+
+**`No module named 'tkinter'`**
+```bash
+sudo apt install python3-tk
+```
+Or just run `python agent.py` anyway — it falls back to terminal prompts.
+
+**`(venv)` not shown / module not found after reboot**
+Activate the virtual environment:
+```bash
+source /home/pi/molluskai/venv/bin/activate
+```
+Or use the systemd service which activates it automatically.
+
+---
+
+## Contributing
+
+MolluskAI is open source under the [MIT License](LICENSE). Contributions are welcome.
+
+- Open issues and pull requests on GitHub
+- Share your skills and tasks with the community
+- Keep code readable — this is a learning platform project
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
