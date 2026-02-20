@@ -287,6 +287,13 @@ Supported schedule strings:
 
 Run MolluskAI automatically when the Raspberry Pi boots using a systemd user service.
 
+Before starting, make sure you are in your home directory with the venv deactivated:
+
+```bash
+deactivate        # exit the virtual environment if active
+cd ~              # return to home directory
+```
+
 ### 1. Create the service file
 
 > **Note:** `~/.config/systemd/user` is the standard systemd path — `user` is a literal
