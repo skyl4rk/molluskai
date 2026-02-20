@@ -19,6 +19,7 @@ Inspired by [PicoClaw](https://github.com/sipeed/picoclaw).
 - **Tasks** — Python scripts that run on a schedule with zero AI API cost; enable/disable without restarting
 - **Project notes** — capture ideas by voice, text, or conversation; retrieve by project or theme using semantic search
 - **Web monitoring** — ask the agent to generate a daily keyword digest from news RSS, Hacker News, Reddit, or any URL
+- **Diet logging** — speak meals into Telegram, the agent estimates calories and sends a morning summary of the previous day
 - **Low cost** — three-layer context (identity + relevant memories + recent turns) keeps each call to ~3,000 tokens
 - **Readable code** — written to be understood and extended; ideal for learning on Raspberry Pi
 
@@ -204,6 +205,7 @@ You can also write or edit skill files manually in the `skills/` directory with 
 | `cost_report.md` | Report on AI usage costs from the usage log |
 | `idea_capture.md` | Capture and organise ideas by project; retrieve by theme |
 | `web_monitor.md` | Generate daily keyword monitoring tasks for news, HN, Reddit, or any URL |
+| `diet_log.md` | Log meals by voice or text; agent estimates calories and tracks daily totals |
 
 ---
 
@@ -571,32 +573,6 @@ WHISPER_MODEL = "tiny"   # change to "base" or "small"
 
 ---
 
-## Project Notes
-
-Capture ideas from voice, text, or conversation and organise them by project. Retrieval uses semantic search so related ideas surface together.
-
-### Saving ideas
-
-```
-note: book | The lighthouse symbolises the character's isolation
-note: recipes | Add preserved lemon to the chicken tagine
-note: An idea without a project goes to 'general'
-```
-
-You can also just speak or type naturally — *"book idea: the ending should mirror the opening"* — and the agent captures and tags it automatically.
-
-Voice messages on Telegram work the same way: speak the idea, it is transcribed and saved.
-
-### Retrieving notes
-
-```
-notes                          — list all projects and note counts
-recall: book                   — all book notes, newest first
-recall: book | character arc   — notes most relevant to that theme
-```
-
----
-
 ## Web Monitoring
 
 Ask the agent to generate a daily keyword digest delivered to Telegram. No API keys required.
@@ -617,6 +593,58 @@ enable task: hn_monitor_machine_learning
 ```
 
 The report arrives at the scheduled time each day via Telegram.
+
+---
+
+## Diet Logging
+
+Track food intake and estimate calories by speaking into Telegram or typing naturally.
+
+### Logging a meal
+
+Just describe what you ate — by voice or text:
+
+```
+I had two eggs and toast for breakfast
+just ate a banana and a coffee
+lunch was a chicken salad
+```
+
+The agent identifies the food, estimates calories using standard nutritional values, saves the entry, and replies with the estimate:
+
+```
+agent> Logged. 2 scrambled eggs + 2 slices toast with butter — roughly 420 kcal.
+```
+
+### Enabling the morning summary
+
+A pre-built task sends yesterday's full log to Telegram each morning. Enable it once:
+
+```
+enable task: diet_morning_report
+```
+
+At 07:30 each day you receive a message like:
+
+```
+Diet log for 2026-02-20:
+
+• 2026-02-20 08:15 | 2 scrambled eggs, 2 slices toast with butter | ~420 kcal
+• 2026-02-20 13:00 | chicken salad, no dressing | ~250 kcal
+• 2026-02-20 19:30 | pasta with tomato sauce (200g cooked) | ~300 kcal
+
+Total: ~970 kcal
+```
+
+No message is sent if nothing was logged the previous day.
+
+### Checking the running total
+
+```
+recall: diet
+```
+
+This retrieves all diet notes from memory. The agent can sum the calorie values on request.
 
 ---
 
