@@ -105,6 +105,7 @@ The onboarding setup asks for this ID so that only you can send messages to your
 | Command | What it does | AI cost |
 |---------|-------------|---------|
 | `help` or `?` | Show all commands | None |
+| `setup` | Re-run the setup wizard | None |
 | `skills` | List skill files | None |
 | `tasks` | List task files with status | None |
 | `enable task: <name>` | Enable a task, reload scheduler | None |
