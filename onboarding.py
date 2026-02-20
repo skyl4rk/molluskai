@@ -95,16 +95,18 @@ def _run_gui() -> None:
         tk.Entry(frame, **entry_kwargs).grid(row=row_num, column=1, **pad)
         return var
 
-    api_key_var  = row("OpenRouter API Key:",    0, show="*")
-    tg_token_var = row("Telegram Bot Token:",    2)
-    tg_users_var = row("Allowed Telegram IDs:",  3)
-    tg_chat_var  = row("Telegram Chat ID:",      4)
+    api_key_var  = row("OpenRouter API Key:",             0, show="*")
+    tg_token_var = row("Telegram Token (optional):",      2)
+    tg_users_var = row("Allowed User IDs (optional):",   3)
+    tg_chat_var  = row("Telegram Chat ID (optional):",   4)
 
     tk.Label(
         frame,
-        text="(IDs from @userinfobot — comma-separated for multiple users)",
+        text="Telegram fields are optional — leave blank to use terminal only. Add later by editing .env",
         fg="grey",
         font=("TkDefaultFont", 8),
+        wraplength=320,
+        justify="left",
     ).grid(row=5, column=1, sticky="w", padx=12)
 
     # Model selector
@@ -155,9 +157,12 @@ def _run_gui() -> None:
 
     root.mainloop()
 
-    # If the window was closed without saving, exit gracefully
+    # If the window was closed without saving, give a clear message and exit
     if not config.is_configured():
-        raise SystemExit("Setup cancelled.")
+        print("\nSetup cancelled — no configuration was saved.")
+        print("Telegram is optional. Leave those fields blank if you don't have a bot yet.")
+        print("Restart to try again: python agent.py\n")
+        raise SystemExit(0)
 
 
 # ---------------------------------------------------------------------------
@@ -192,7 +197,8 @@ def _run_terminal() -> None:
         model = config.POPULAR_MODELS[0]
 
     # Telegram
-    print("\n--- Telegram (optional, press Enter to skip) ---")
+    print("\n--- Telegram (optional — press Enter to skip all three fields) ---")
+    print("    Don't have a Telegram bot yet? Leave blank and add it later by editing .env")
     tg_token = input("Telegram Bot Token: ").strip()
     tg_users = ""
     tg_chat  = ""
