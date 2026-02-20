@@ -116,9 +116,26 @@ Without tkinter, the setup runs as terminal prompts instead.
 
 ---
 
+## Starting MolluskAI
+
+After every reboot, or when opening a new terminal, use these three commands:
+
+```bash
+cd ~/molluskai
+source venv/bin/activate
+python agent.py
+```
+
+> **Tip:** If you set up the systemd service (see [Auto-Start on Boot](#auto-start-on-boot)),
+> MolluskAI starts automatically after every reboot with no manual steps needed.
+
+---
+
 ## First Run
 
 ```bash
+cd ~/molluskai
+source venv/bin/activate
 python agent.py
 ```
 
