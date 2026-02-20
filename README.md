@@ -221,21 +221,15 @@ you> yes
 agent> Saved task: craigslist_bikes.py
 ```
 
-After saving, **review the code**, then enable the task with a command — no restart needed:
+After saving, **review the code**, then enable it — no restart needed:
 
 ```
 enable task: craigslist_bikes
 ```
 
-Or enable it manually by editing the file header:
-
-```bash
-nano tasks/craigslist_bikes.py
-# Change:  # ENABLED: false
-# To:      # ENABLED: true
-```
-
 > **Review before enabling.** Read through the generated code before enabling, especially for tasks that send messages, access the network, or perform system operations.
+
+If you prefer to edit the file manually, change `# ENABLED: false` to `# ENABLED: true` in the header, then run `enable task: craigslist_bikes` to reload the scheduler without restarting.
 
 ---
 
