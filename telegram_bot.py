@@ -118,13 +118,27 @@ def _run_bot(token: str, message_handler) -> None:
         for reply in replies:
             await update.message.reply_text(reply)
 
-    async def main():
+    async def run():
         app = ApplicationBuilder().token(token).build()
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
         app.add_handler(MessageHandler(filters.Document.ALL, on_document))
-        await app.run_polling(drop_pending_updates=True)
+        # Use async context manager instead of run_polling() to avoid
+        # installing OS signal handlers, which only work in the main thread.
+        async with app:
+            await app.start()
+            await app.updater.start_polling(drop_pending_updates=True)
+            # Wait indefinitely — this thread is a daemon and will be
+            # killed automatically when the main process exits.
+            await asyncio.Event().wait()
 
-    asyncio.run(main())
+    # Create a dedicated event loop for this thread.
+    # Do NOT use asyncio.run() — it also tries to install signal handlers.
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(run())
+    finally:
+        loop.close()
 
 
 def _split(text: str, max_len: int = 4000) -> list:
