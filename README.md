@@ -23,34 +23,12 @@ Inspired by [PicoClaw](https://github.com/sipeed/picoclaw).
 
 ## Download & Install
 
-**Option 1 — One-line installer (git, wget, or curl):**
 ```bash
 wget https://raw.githubusercontent.com/skyl4rk/molluskai/main/install.sh
 chmod +x install.sh && ./install.sh
 ```
+
 The installer clones the repo, creates a virtual environment, and installs all dependencies.
-
-**Option 2 — Direct zip download with wget:**
-```bash
-wget https://github.com/skyl4rk/molluskai/archive/refs/heads/main.zip
-unzip main.zip
-cd molluskai-main
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-python agent.py
-```
-
-**Option 3 — Release zip** *(if a release zip is hosted separately)*:
-```bash
-wget https://your-server/molluskai-dist.zip
-unzip molluskai-dist.zip
-cd molluskai
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-python agent.py
-```
-
-> Build a release zip locally at any time with: `./make_dist.sh`
 
 ---
 
