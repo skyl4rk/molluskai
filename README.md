@@ -20,6 +20,7 @@ Inspired by [PicoClaw](https://github.com/sipeed/picoclaw).
 - **Project notes** — capture ideas by voice, text, or conversation; retrieve by project or theme using semantic search
 - **Web monitoring** — ask the agent to generate a daily keyword digest from news RSS, Hacker News, Reddit, or any URL
 - **Diet logging** — speak meals into Telegram, the agent estimates calories and sends a morning summary of the previous day
+- **Expense tracking** — log purchases by voice or text with automatic categorisation; monthly spending report by category delivered to Telegram
 - **Low cost** — three-layer context (identity + relevant memories + recent turns) keeps each call to ~3,000 tokens
 - **Readable code** — written to be understood and extended; ideal for learning on Raspberry Pi
 
@@ -206,6 +207,7 @@ You can also write or edit skill files manually in the `skills/` directory with 
 | `idea_capture.md` | Capture and organise ideas by project; retrieve by theme |
 | `web_monitor.md` | Generate daily keyword monitoring tasks for news, HN, Reddit, or any URL |
 | `diet_log.md` | Log meals by voice or text; agent estimates calories and tracks daily totals |
+| `expense_tracker.md` | Log purchases by voice or text with category; monthly spending report by category |
 
 ---
 
@@ -645,6 +647,67 @@ recall: diet
 ```
 
 This retrieves all diet notes from memory. The agent can sum the calorie values on request.
+
+---
+
+## Expense Tracking
+
+Log purchases by voice or text throughout the day. A scheduled task sends a monthly spending report grouped by category to Telegram on the 1st of each month.
+
+### Logging an expense
+
+Speak or type naturally:
+
+```
+spent £12 on lunch
+paid 45 for groceries at Tesco
+electricity bill was 120
+coffee, 3.50
+```
+
+The agent categorises the purchase and replies with a confirmation:
+
+```
+agent> Logged. 12.00 — eating out.
+```
+
+Standard categories: groceries, eating out, transport, utilities, household, health, entertainment, clothing, travel, other.
+
+### Enabling the monthly report
+
+```
+enable task: expense_monthly_report
+```
+
+On the 1st of each month at 08:00 you receive:
+
+```
+Expenses — January 2026
+
+Eating Out: 87.50
+  • lunch at the deli — 12.00
+  • pizza Friday — 24.50
+  • coffee runs — 51.00
+Groceries: 210.00
+  • Tesco weekly — 45.00
+  • Tesco weekly — 48.00
+  ...
+Transport: 32.00
+  • bus fares — 22.00
+  • parking — 10.00
+
+Total: 329.50
+```
+
+No message is sent if nothing was logged the previous month.
+
+### Checking spending so far this month
+
+```
+recall: expenses
+```
+
+Retrieves all expense notes. Ask the agent to total by category from the results shown.
 
 ---
 
