@@ -126,6 +126,22 @@ def handle_message(text: str, reply_fn) -> None:
         reply_fn(_list_tasks())
         return
 
+    if lower == "model":
+        import config
+        reply_fn(f"Current model: {config.OPENROUTER_MODEL}\nUsage: model: <model-id>")
+        return
+
+    if lower.startswith("model:"):
+        model_id = text[6:].strip()
+        if not model_id:
+            import config
+            reply_fn(f"Current model: {config.OPENROUTER_MODEL}\nUsage: model: <model-id>")
+            return
+        import config
+        config.set_model(model_id)
+        reply_fn(f"Model changed to: {model_id}\nSaved to .env — no restart needed.")
+        return
+
     if lower.startswith("enable task:"):
         reply_fn(_set_task_enabled(text[12:].strip(), True))
         return
@@ -390,6 +406,8 @@ def _help_text() -> str:
         tasks               List task files and their status
         enable task: <name> Enable a task and reload the scheduler
         disable task: <name> Disable a task and reload the scheduler
+        model               Show current model
+        model: <model-id>   Switch model instantly (saved to .env)
         search: <query>     Search your memory for a topic
         ingest: <url>       Fetch and store a web page
         ingest pdf: <path>  Extract and store text from a PDF

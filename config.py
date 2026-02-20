@@ -43,6 +43,26 @@ POPULAR_MODELS = [
 ]
 
 
+def set_model(model_id: str) -> None:
+    """Update OPENROUTER_MODEL in memory and persist the change to .env."""
+    global OPENROUTER_MODEL
+    OPENROUTER_MODEL = model_id
+
+    if ENV_FILE.exists():
+        import re
+        content = ENV_FILE.read_text()
+        new_content = re.sub(
+            r'^OPENROUTER_MODEL=.*$',
+            f'OPENROUTER_MODEL={model_id}',
+            content,
+            flags=re.MULTILINE,
+        )
+        if new_content == content:
+            # Line not present — append it
+            new_content = content.rstrip() + f'\nOPENROUTER_MODEL={model_id}\n'
+        ENV_FILE.write_text(new_content)
+
+
 def is_configured() -> bool:
     """Return True if the .env file exists and the API key is set.
 

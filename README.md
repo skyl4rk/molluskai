@@ -106,7 +106,11 @@ The onboarding setup asks for this ID so that only you can send messages to your
 |---------|-------------|---------|
 | `help` or `?` | Show all commands | None |
 | `skills` | List skill files | None |
-| `tasks` | List task files with schedule | None |
+| `tasks` | List task files with status | None |
+| `enable task: <name>` | Enable a task, reload scheduler | None |
+| `disable task: <name>` | Disable a task, reload scheduler | None |
+| `model` | Show current model | None |
+| `model: <model-id>` | Switch model, saved to .env | None |
 | `search: <topic>` | Search your memory | None |
 | `ingest: <url>` | Fetch and store a web page | None |
 | `ingest pdf: <path>` | Extract and store a PDF file | None |
@@ -118,24 +122,15 @@ The onboarding setup asks for this ID so that only you can send messages to your
 
 ## Changing the Model
 
-1. Edit `.env` and update `OPENROUTER_MODEL`:
-   ```bash
-   nano ~/.env
-   # Example: OPENROUTER_MODEL=anthropic/claude-3-5-haiku
-   ```
+Switch models instantly without restarting — from terminal or Telegram:
 
-2. Restart the agent for the change to take effect:
-   ```bash
-   # Terminal mode
-   cd ~/molluskai
-   source venv/bin/activate
-   python agent.py
+```
+model: anthropic/claude-3-5-haiku
+```
 
-   # If running as a service
-   systemctl --user restart molluskai
-   ```
+The change takes effect immediately and is saved to `.env` so it persists after a restart. Type `model` on its own to see the current model.
 
-The current model is shown at startup (`MolluskAI ready  •  model: ...`) and in the `help` command output.
+The current model is also shown at startup (`MolluskAI ready  •  model: ...`).
 
 To browse available models, use the **Fetch models** button in the onboarding GUI (`setup` command), or visit [openrouter.ai/models](https://openrouter.ai/models).
 
