@@ -44,5 +44,13 @@ POPULAR_MODELS = [
 
 
 def is_configured() -> bool:
-    """Return True if the .env file exists and the API key is set."""
-    return ENV_FILE.exists() and bool(OPENROUTER_API_KEY)
+    """Return True if the .env file exists and the API key is set.
+
+    Reads the file directly rather than using the cached module constant,
+    so it works correctly when called after onboarding writes a new .env.
+    """
+    if not ENV_FILE.exists():
+        return False
+    from dotenv import dotenv_values
+    vals = dotenv_values(ENV_FILE)
+    return bool(vals.get("OPENROUTER_API_KEY", ""))
