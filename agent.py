@@ -363,11 +363,12 @@ def _list_tasks() -> str:
         return "No tasks found. Add .py files to the tasks/ directory."
     lines = ["Tasks (local automation in tasks/):"]
     for t in tasks:
-        status = "enabled" if t["enabled"] else "disabled"
-        sched  = t["schedule"] or "no schedule set"
-        desc   = t["description"] or t["name"]
-        lines.append(f"  • {t['name']} [{status}]  {sched}")
-        lines.append(f"    {desc}")
+        status   = "enabled" if t["enabled"] else "disabled"
+        sched    = t["schedule"] or "no schedule set"
+        desc     = t["description"] or t["name"]
+        filename = Path(t["path"]).stem
+        lines.append(f"  • {filename} [{status}]  {sched}")
+        lines.append(f"    {t['name']} — {desc}")
     return "\n".join(lines)
 
 
