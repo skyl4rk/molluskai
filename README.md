@@ -464,6 +464,14 @@ rm -rf /home/pi/molluskai
 
 This removes everything: the code, the memory database, the usage log, and the `.env` credentials.
 
+### 3. Remove the installer script (if used)
+
+If you installed using the one-line wget method, the `install.sh` script remains in the directory where you ran it (usually your home directory):
+
+```bash
+rm ~/install.sh
+```
+
 ### 3. Revoke API keys (recommended)
 
 - **OpenRouter:** Go to [openrouter.ai/keys](https://openrouter.ai/keys) and delete the key
