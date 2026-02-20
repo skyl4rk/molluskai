@@ -135,10 +135,24 @@ You will be asked for:
 | OpenRouter API Key | Yes | [openrouter.ai/keys](https://openrouter.ai/keys) |
 | Model | Yes | Choose from the dropdown or type any OpenRouter model ID |
 | Telegram Bot Token | Optional | Message [@BotFather](https://t.me/BotFather) on Telegram |
-| Allowed Telegram User IDs | Recommended | Message [@userinfobot](https://t.me/userinfobot) — comma-separated for multiple users |
-| Telegram Chat ID | Optional | Same as your user ID for personal use; used for outbound task notifications |
+| Your Telegram User ID | Recommended | See below |
 
 Your credentials are saved to `.env` with permissions set to `600` (owner only).
+
+### Finding Your Telegram User ID
+
+Your Telegram **User ID** is a permanent numeric identifier (e.g. `123456789`) — it is **not** your username or display name.
+
+To find it:
+1. Open Telegram
+2. Search for **@userinfobot**
+3. Send it any message (e.g. `/start`)
+4. It replies instantly with your numeric ID
+
+The onboarding setup asks for this ID so that only you can send messages to your bot. You can add more allowed IDs later by editing `.env` directly.
+
+> **Note:** The `TELEGRAM_ALLOWED_USERS` field in `.env` accepts a comma-separated list of numeric IDs.
+> Example: `TELEGRAM_ALLOWED_USERS=123456789,987654321`
 
 ---
 
@@ -407,7 +421,7 @@ Only Telegram users listed in `TELEGRAM_ALLOWED_USERS` (in `.env`) can interact 
 
 > *"Sorry, I'm a private assistant. Access is not permitted."*
 
-Find your Telegram user ID by messaging [@userinfobot](https://t.me/userinfobot).
+Find your numeric Telegram user ID by messaging [@userinfobot](https://t.me/userinfobot) — it replies with a number like `123456789`. This is **not** your username or display name.
 
 If `TELEGRAM_ALLOWED_USERS` is left empty, **all users can interact** with the bot — not recommended.
 
