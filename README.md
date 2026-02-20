@@ -17,6 +17,8 @@ Inspired by [PicoClaw](https://github.com/sipeed/picoclaw).
 - **Vector memory** — conversations and documents stored locally and recalled semantically
 - **Skills** — markdown files that teach the agent new behaviours; the agent can write them for you
 - **Tasks** — Python scripts that run on a schedule with zero AI API cost; enable/disable without restarting
+- **Project notes** — capture ideas by voice, text, or conversation; retrieve by project or theme using semantic search
+- **Web monitoring** — ask the agent to generate a daily keyword digest from news RSS, Hacker News, Reddit, or any URL
 - **Low cost** — three-layer context (identity + relevant memories + recent turns) keeps each call to ~3,000 tokens
 - **Readable code** — written to be understood and extended; ideal for learning on Raspberry Pi
 
@@ -566,6 +568,55 @@ WHISPER_MODEL = "tiny"   # change to "base" or "small"
 | tiny  | ~39MB | Fastest, good for clear speech |
 | base  | ~74MB | Better accuracy, ~2× slower on Pi |
 | small | ~244MB | Best quality, noticeably slow on Pi 4 |
+
+---
+
+## Project Notes
+
+Capture ideas from voice, text, or conversation and organise them by project. Retrieval uses semantic search so related ideas surface together.
+
+### Saving ideas
+
+```
+note: book | The lighthouse symbolises the character's isolation
+note: recipes | Add preserved lemon to the chicken tagine
+note: An idea without a project goes to 'general'
+```
+
+You can also just speak or type naturally — *"book idea: the ending should mirror the opening"* — and the agent captures and tags it automatically.
+
+Voice messages on Telegram work the same way: speak the idea, it is transcribed and saved.
+
+### Retrieving notes
+
+```
+notes                          — list all projects and note counts
+recall: book                   — all book notes, newest first
+recall: book | character arc   — notes most relevant to that theme
+```
+
+---
+
+## Web Monitoring
+
+Ask the agent to generate a daily keyword digest delivered to Telegram. No API keys required.
+
+Supported sources:
+
+| Source | Example request |
+|--------|----------------|
+| News / RSS feeds | *"Monitor BBC tech news for 'raspberry pi'"* |
+| Hacker News | *"Daily HN digest for 'machine learning'"* |
+| Reddit | *"Watch r/selfhosted for 'home server'"* |
+| Any URL | *"Alert me when 'planning application' appears on my council website"* |
+
+The agent generates a task script, you review and enable it:
+
+```
+enable task: hn_monitor_machine_learning
+```
+
+The report arrives at the scheduled time each day via Telegram.
 
 ---
 
