@@ -50,20 +50,14 @@ git clone https://github.com/skyl4rk/molluskai.git
 cd molluskai
 ```
 
-### 2. Create a virtual environment (recommended)
-
-Using a virtual environment keeps MolluskAI's dependencies separate from the rest of your system and makes uninstalling straightforward.
+### 2. Create a virtual environment
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-> **Note:** You need to activate the virtual environment each time you open a new terminal:
-> ```bash
-> source venv/bin/activate
-> ```
-> Your prompt will show `(venv)` when it is active.
+Your prompt will show `(venv)` when the environment is active. You need to activate it each time you open a new terminal — or use the three-command startup sequence in [Starting MolluskAI](#starting-molluskai).
 
 ### 3. Install dependencies
 
@@ -602,11 +596,13 @@ sudo apt install python3-tk
 Or just run `python agent.py` anyway — it falls back to terminal prompts.
 
 **`(venv)` not shown / module not found after reboot**
-Activate the virtual environment:
+Use the standard startup sequence:
 ```bash
-source /home/pi/molluskai/venv/bin/activate
+cd ~/molluskai
+source venv/bin/activate
+python agent.py
 ```
-Or use the systemd service which activates it automatically.
+Or set up the systemd service so it starts automatically on every reboot.
 
 ---
 
