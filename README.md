@@ -111,6 +111,11 @@ The onboarding setup asks for this ID so that only you can send messages to your
 | `disable task: <name>` | Disable a task, reload scheduler | None |
 | `model` | Show current model | None |
 | `model: <model-id>` | Switch model, saved to .env | None |
+| `notes` | List all note projects with counts | None |
+| `note: <project> \| <idea>` | Save an idea to a project | None |
+| `note: <idea>` | Save an idea to 'general' | None |
+| `recall: <project>` | Retrieve all notes for a project | None |
+| `recall: <project> \| <theme>` | Search notes by theme | None |
 | `search: <topic>` | Search your memory | None |
 | `ingest: <url>` | Fetch and store a web page | None |
 | `ingest pdf: <path>` | Extract and store a PDF file | None |
@@ -474,6 +479,42 @@ Use `search: <topic>` to retrieve memories on demand.
 ingest: https://example.com/article
 ingest pdf: /home/pi/documents/report.pdf
 ```
+
+---
+
+## Project Notes
+
+MolluskAI includes a lightweight idea capture system for organising thoughts around ongoing projects — a book, research topic, recipe collection, or anything else you return to over time.
+
+### Saving ideas
+
+From terminal or Telegram — type or speak:
+
+```
+note: book | The lighthouse is a metaphor for the character's isolation
+note: recipes | Add preserved lemon to the chicken tagine
+note: book | The antagonist needs a clearer motivation in chapter 3
+```
+
+Omitting the project saves to `general`:
+```
+note: Remember to check the sunset time for the garden scene
+```
+
+The agent also captures ideas automatically mid-conversation. If you say *"book idea: the ending should mirror the opening scene"*, the agent saves it as a note and confirms without interrupting the flow.
+
+Voice messages work the same way — speak the idea on Telegram, it is transcribed and saved.
+
+### Retrieving notes
+
+```
+notes                          ← list all projects and note counts
+recall: book                   ← all book notes, newest first
+recall: book | character       ← notes most relevant to 'character'
+recall: book | chapter endings ← notes about endings
+```
+
+The `recall: project | theme` form uses semantic search — it finds notes by meaning, not just matching words.
 
 ---
 

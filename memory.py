@@ -14,6 +14,8 @@
 #   store_conversation(role, text) — append a conversation turn
 #   get_recent(n)                  — last n conversation turns
 #   search(query, n)               — semantic (or FTS) search
+#   get_notes(project, query, n)   — retrieve project notes, optionally by theme
+#   get_note_projects()            — list all projects that have notes
 #   ingest_url(url)                — fetch, chunk, embed, and store a web page
 #   ingest_pdf(path)               — extract, chunk, embed, and store a PDF
 
@@ -322,6 +324,93 @@ def search(query: str, n: int = 5) -> list:
 
     conn.close()
     return results
+
+
+# ---------------------------------------------------------------------------
+# Project notes
+# ---------------------------------------------------------------------------
+
+def get_notes(project: str, query: str = None, n: int = 50) -> list:
+    """
+    Retrieve notes for a project.
+
+    If query is given: return notes sorted by semantic similarity to the query.
+    If no query: return all notes for the project, newest first.
+
+    Notes are memories stored with role='note' and source=project.
+    """
+    conn = _connect()
+
+    if query and EMBEDDINGS_AVAILABLE:
+        vec = _embed(query)
+        if vec is not None:
+            if SQLITE_VEC_AVAILABLE:
+                # KNN search across all memories, then filter to this project
+                rows = conn.execute(
+                    """
+                    SELECT m.content, m.role, m.source, m.timestamp
+                    FROM memories m
+                    INNER JOIN (
+                        SELECT rowid, distance FROM memories_vec
+                        WHERE embedding MATCH ?
+                        ORDER BY distance LIMIT ?
+                    ) v ON m.id = v.rowid
+                    WHERE m.role = 'note' AND lower(m.source) = lower(?)
+                    ORDER BY v.distance
+                    """,
+                    (_pack(vec), min(n * 10, 500), project),
+                ).fetchall()
+                conn.close()
+                return [dict(r) for r in rows[:n]]
+
+            elif NUMPY_AVAILABLE:
+                rows = conn.execute(
+                    "SELECT id, content, role, source, timestamp, embedding "
+                    "FROM memories WHERE role='note' AND lower(source)=lower(?) "
+                    "AND embedding IS NOT NULL ORDER BY timestamp DESC",
+                    (project,),
+                ).fetchall()
+                conn.close()
+                if not rows:
+                    return []
+                query_arr = _np.array(vec)
+                scored = []
+                for row in rows:
+                    stored_arr = _np.array(_unpack(row["embedding"]))
+                    denom = _np.linalg.norm(query_arr) * _np.linalg.norm(stored_arr)
+                    score = float(_np.dot(query_arr, stored_arr) / denom) if denom > 0 else 0.0
+                    scored.append((score, dict(row)))
+                scored.sort(key=lambda x: x[0], reverse=True)
+                results = [r for _, r in scored[:n]]
+                for r in results:
+                    r.pop("embedding", None)
+                    r.pop("id", None)
+                return results
+
+    # No query or no embeddings — return all notes chronologically
+    rows = conn.execute(
+        "SELECT content, role, source, timestamp FROM memories "
+        "WHERE role='note' AND lower(source)=lower(?) "
+        "ORDER BY timestamp DESC LIMIT ?",
+        (project, n),
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_note_projects() -> list:
+    """
+    Return a list of (project, count) tuples for all projects that have notes,
+    sorted by most notes first.
+    """
+    conn = _connect()
+    rows = conn.execute(
+        "SELECT source, COUNT(*) as count FROM memories "
+        "WHERE role='note' AND source IS NOT NULL "
+        "GROUP BY lower(source) ORDER BY count DESC"
+    ).fetchall()
+    conn.close()
+    return [(r["source"], r["count"]) for r in rows]
 
 
 # ---------------------------------------------------------------------------

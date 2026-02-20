@@ -142,6 +142,44 @@ def handle_message(text: str, reply_fn) -> None:
         reply_fn(f"Model changed to: {model_id}\nSaved to .env — no restart needed.")
         return
 
+    if lower == "notes":
+        reply_fn(_list_note_projects())
+        return
+
+    if lower.startswith("note:"):
+        body = text[5:].strip()
+        if "|" in body:
+            project, content = body.split("|", 1)
+            project = project.strip()
+            content = content.strip()
+        else:
+            project = "general"
+            content = body
+        if not content:
+            reply_fn("Usage: note: <project> | <idea>  or  note: <idea>")
+            return
+        import memory
+        memory.store_memory(content, role="note", source=project)
+        reply_fn(f"Note saved to '{project}'.")
+        return
+
+    if lower.startswith("recall:"):
+        body = text[7:].strip()
+        if "|" in body:
+            project, query = body.split("|", 1)
+            project = project.strip()
+            query   = query.strip()
+        else:
+            project = body.strip()
+            query   = None
+        if not project:
+            reply_fn("Usage: recall: <project>  or  recall: <project> | <theme>")
+            return
+        import memory
+        notes = memory.get_notes(project, query=query)
+        reply_fn(_format_notes(project, notes, query))
+        return
+
     if lower.startswith("enable task:"):
         reply_fn(_set_task_enabled(text[12:].strip(), True))
         return
@@ -201,6 +239,13 @@ def handle_message(text: str, reply_fn) -> None:
         f"User: {text}\nAssistant: {response}",
         role="conversation",
     )
+
+    # Check if the LLM wants to save a note directly to memory
+    cleaned_response, note = _extract_note_directive(response)
+    if note:
+        memory.store_memory(note["content"], role="note", source=note["project"])
+        reply_fn(cleaned_response + f"\n\n_(Note saved to '{note['project']}')_")
+        return
 
     # Check if the LLM wants to write a skill or task file
     cleaned_response, pending = _extract_save_directive(response)
@@ -326,6 +371,40 @@ def _list_tasks() -> str:
     return "\n".join(lines)
 
 
+def _list_note_projects() -> str:
+    import memory
+    projects = memory.get_note_projects()
+    if not projects:
+        return (
+            "No notes saved yet.\n"
+            "Usage: note: <project> | <idea>\n"
+            "Example: note: book | The lighthouse represents isolation"
+        )
+    lines = ["Note projects:"]
+    for project, count in projects:
+        lines.append(f"  • {project}  ({count} note{'s' if count != 1 else ''})")
+    lines.append("\nUse 'recall: <project>' to retrieve notes.")
+    return "\n".join(lines)
+
+
+def _format_notes(project: str, notes: list, query: str = None) -> str:
+    if not notes:
+        msg = f"No notes found for project '{project}'."
+        if query:
+            msg += f"\nTry 'recall: {project}' without a theme to see all notes."
+        return msg
+    header = f"Notes — {project}"
+    if query:
+        header += f"  (theme: {query})"
+    lines = [f"{header}  [{len(notes)} note{'s' if len(notes) != 1 else ''}]",
+             "─" * 44]
+    for i, n in enumerate(notes, 1):
+        ts = (n.get("timestamp") or "")[:16]
+        lines.append(f"\n[{i}] {ts}")
+        lines.append(n["content"])
+    return "\n".join(lines)
+
+
 def _set_task_enabled(name: str, enabled: bool) -> str:
     """Edit a task file's ENABLED header and reload the scheduler."""
     import scheduler
@@ -408,6 +487,11 @@ def _help_text() -> str:
         disable task: <name> Disable a task and reload the scheduler
         model               Show current model
         model: <model-id>   Switch model instantly (saved to .env)
+        notes               List all note projects with counts
+        note: <project> | <idea>  Save an idea to a project
+        note: <idea>        Save an idea to 'general' project
+        recall: <project>   Retrieve all notes for a project
+        recall: <project> | <theme>  Search notes by theme
         search: <query>     Search your memory for a topic
         ingest: <url>       Fetch and store a web page
         ingest pdf: <path>  Extract and store text from a PDF
@@ -425,6 +509,25 @@ def _help_text() -> str:
 # ---------------------------------------------------------------------------
 # Skill / Task file-write extraction
 # ---------------------------------------------------------------------------
+
+def _extract_note_directive(response: str) -> tuple:
+    """
+    Detect [SAVE_NOTE: project]content[/SAVE_NOTE] in an LLM response.
+    If found, strips the tag and returns the note for immediate storage.
+    Returns (cleaned_response, note_dict | None)
+    """
+    pattern = re.compile(
+        r'\[SAVE_NOTE:\s*([^\]]+)\](.*?)\[/SAVE_NOTE\]',
+        re.DOTALL | re.IGNORECASE,
+    )
+    match = pattern.search(response)
+    if match:
+        project = match.group(1).strip()
+        content = match.group(2).strip()
+        cleaned = pattern.sub("", response).strip()
+        return cleaned, {"project": project, "content": content}
+    return response, None
+
 
 def _extract_save_directive(response: str) -> tuple:
     """
