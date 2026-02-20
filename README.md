@@ -532,6 +532,47 @@ ingest pdf: /home/pi/documents/report.pdf
 
 ---
 
+## Voice Messages (Telegram)
+
+You can send voice messages to the bot on Telegram and it will transcribe them using [faster-whisper](https://github.com/SYSTRAN/faster-whisper) before passing them to the agent.
+
+### Setup
+
+1. Install ffmpeg (required for audio decoding):
+   ```bash
+   sudo apt install ffmpeg
+   ```
+
+2. Install faster-whisper (already in `requirements.txt`):
+   ```bash
+   pip install faster-whisper
+   ```
+
+On first use, the Whisper `tiny` model (~40MB) is downloaded automatically to `~/.cache/huggingface/hub/`.
+
+### How it works
+
+1. Send a voice message to the bot on Telegram
+2. The bot replies `Transcribing…`
+3. Once transcribed, it shows `_(Heard: your words here)_` so you can verify
+4. The agent responds to the transcribed text as normal
+
+### Changing the model
+
+If you want better accuracy at the cost of speed, edit `transcribe.py` and change:
+
+```python
+WHISPER_MODEL = "tiny"   # change to "base" or "small"
+```
+
+| Model | Size | Notes |
+|-------|------|-------|
+| tiny  | ~39MB | Fastest, good for clear speech |
+| base  | ~74MB | Better accuracy, ~2× slower on Pi |
+| small | ~244MB | Best quality, noticeably slow on Pi 4 |
+
+---
+
 ## Troubleshooting
 
 **`sqlite-vec` won't install on ARM64**

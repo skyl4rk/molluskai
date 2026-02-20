@@ -21,6 +21,10 @@ schedule
 fastembed
 sqlite-vec
 
+# Voice message transcription (optional)
+# Also requires: sudo apt install ffmpeg
+faster-whisper
+
 # Document ingestion
 beautifulsoup4
 pymupdf

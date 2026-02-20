@@ -3,6 +3,7 @@
 # Runs python-telegram-bot in a background daemon thread using asyncio.
 # Handles:
 #   - Text messages  → routed to agent.handle_message()
+#   - Voice messages → transcribed via faster-whisper, then routed as text
 #   - PDF documents  → downloaded, then ingested via memory.ingest_pdf()
 #
 # Security: only TELEGRAM_ALLOWED_USERS listed in .env are accepted.
@@ -91,6 +92,45 @@ def _run_bot(token: str, message_handler) -> None:
             for chunk in _split(reply):
                 await update.message.reply_text(chunk)
 
+    async def on_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle voice messages — transcribe and pass to handle_message()."""
+        if not await _check_user(update):
+            await update.message.reply_text(DENIED_MESSAGE)
+            return
+
+        import transcribe
+        if not transcribe.WHISPER_AVAILABLE:
+            await update.message.reply_text(
+                "Voice messages require faster-whisper and ffmpeg.\n"
+                "Run:\n"
+                "  sudo apt install ffmpeg\n"
+                "  pip install faster-whisper"
+            )
+            return
+
+        await update.message.reply_text("Transcribing…")
+
+        voice = update.message.voice
+        DATA_DIR.mkdir(exist_ok=True)
+        ogg_path = DATA_DIR / f"voice_{voice.file_id}.ogg"
+        tg_file = await context.bot.get_file(voice.file_id)
+        await tg_file.download_to_drive(str(ogg_path))
+
+        text = transcribe.transcribe(str(ogg_path))
+        ogg_path.unlink(missing_ok=True)  # clean up after transcription
+
+        if not text:
+            await update.message.reply_text("Sorry, I couldn't understand the audio.")
+            return
+
+        await update.message.reply_text(f"_(Heard: {text})_", parse_mode="Markdown")
+
+        replies = []
+        message_handler(text, lambda r: replies.append(r))
+        for reply in replies:
+            for chunk in _split(reply):
+                await update.message.reply_text(chunk)
+
     async def on_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle PDF file uploads — download and ingest them."""
         if not await _check_user(update):
@@ -121,6 +161,7 @@ def _run_bot(token: str, message_handler) -> None:
     async def run():
         app = ApplicationBuilder().token(token).build()
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
+        app.add_handler(MessageHandler(filters.VOICE, on_voice))
         app.add_handler(MessageHandler(filters.Document.ALL, on_document))
         # Use async context manager instead of run_polling() to avoid
         # installing OS signal handlers, which only work in the main thread.
