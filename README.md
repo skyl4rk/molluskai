@@ -21,6 +21,7 @@ Inspired by [PicoClaw](https://github.com/sipeed/picoclaw).
 - **Web monitoring** — ask the agent to generate a daily keyword digest from news RSS, Hacker News, Reddit, or any URL
 - **Diet logging** — speak meals into Telegram, the agent estimates calories and sends a morning summary of the previous day
 - **Expense tracking** — log purchases by voice or text with automatic categorisation; monthly spending report by category delivered to Telegram
+- **Workout log** — log exercise sessions by voice or text; weekly training summary delivered every Monday morning
 - **Low cost** — three-layer context (identity + relevant memories + recent turns) keeps each call to ~3,000 tokens
 - **Readable code** — written to be understood and extended; ideal for learning on Raspberry Pi
 
@@ -208,6 +209,7 @@ You can also write or edit skill files manually in the `skills/` directory with 
 | `web_monitor.md` | Generate daily keyword monitoring tasks for news, HN, Reddit, or any URL |
 | `diet_log.md` | Log meals by voice or text; agent estimates calories and tracks daily totals |
 | `expense_tracker.md` | Log purchases by voice or text with category; monthly spending report by category |
+| `workout_log.md` | Log exercise sessions by voice or text; weekly training summary every Monday |
 
 ---
 
@@ -708,6 +710,72 @@ recall: expenses
 ```
 
 Retrieves all expense notes. Ask the agent to total by category from the results shown.
+
+---
+
+## Workout Log
+
+Log exercise sessions by voice or text. A scheduled task sends a weekly summary every Monday morning covering the previous week.
+
+### Logging a session
+
+Speak or type naturally after your workout:
+
+```
+just finished a 5k run, 28 minutes
+did chest day — bench 3 sets of 10 at 80kg, incline dumbbell 3 sets of 8
+45 minute yoga session
+walked 4 miles this morning
+```
+
+The agent identifies the type, logs the details, and replies with a confirmation. Personal bests and milestones are noted automatically.
+
+Supported types: strength, cardio, hiit, walk, cycle, swim, flexibility, sport, other.
+
+### Enabling the weekly report
+
+```
+enable task: workout_weekly_report
+```
+
+Every Monday at 08:00 you receive a summary of the previous week:
+
+```
+Workouts — 10 Feb – 16 Feb 2026
+Trained: 5/7 days  •  Rest: 2
+
+Monday 10 Feb
+  [cardio] morning run
+  5.2 km in 28 min
+
+Wednesday 12 Feb
+  [strength] chest and shoulders
+  bench press 3x10@80kg, OHP 3x8@50kg
+
+Thursday 13 Feb
+  [walk] lunchtime walk
+  3.5 km, 40 min
+
+Saturday 15 Feb
+  [strength] legs
+  squat 4x5@100kg, Romanian deadlift 3x10@70kg
+
+Sunday 16 Feb
+  [flexibility] yoga flow
+  45 min vinyasa
+
+Session types: cardio: 1, flexibility: 1, strength: 2, walk: 1
+```
+
+No message is sent if no workouts were logged the previous week.
+
+### Reviewing recent training
+
+```
+recall: workouts
+```
+
+Retrieves logged sessions. Ask the agent to identify patterns, flag rest days, or suggest what to focus on next.
 
 ---
 
