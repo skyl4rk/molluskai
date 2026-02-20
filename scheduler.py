@@ -141,15 +141,8 @@ def _register(task: dict) -> bool:
         return False
 
 
-def start() -> None:
-    """
-    Discover enabled tasks, register them, and start the scheduler loop
-    in a background daemon thread. Returns immediately.
-    """
-    if not SCHEDULE_AVAILABLE:
-        print("[scheduler] 'schedule' library not installed — tasks disabled. Run: pip install schedule")
-        return
-
+def _load_tasks() -> None:
+    """Discover enabled tasks and register them with the schedule library."""
     tasks   = discover_tasks()
     enabled = [t for t in tasks if t["enabled"] and t["schedule"]]
 
@@ -159,6 +152,18 @@ def start() -> None:
         registered = sum(1 for t in enabled if _register(t))
         print(f"[scheduler] {registered}/{len(enabled)} task(s) registered.")
 
+
+def start() -> None:
+    """
+    Discover enabled tasks, register them, and start the scheduler loop
+    in a background daemon thread. Returns immediately.
+    """
+    if not SCHEDULE_AVAILABLE:
+        print("[scheduler] 'schedule' library not installed — tasks disabled. Run: pip install schedule")
+        return
+
+    _load_tasks()
+
     def _loop():
         while True:
             schedule.run_pending()
@@ -166,3 +171,14 @@ def start() -> None:
 
     thread = threading.Thread(target=_loop, daemon=True, name="scheduler")
     thread.start()
+
+
+def reload() -> None:
+    """
+    Re-discover tasks and re-register them without restarting the agent.
+    Called after enable task: / disable task: commands.
+    """
+    if not SCHEDULE_AVAILABLE:
+        return
+    schedule.clear()
+    _load_tasks()

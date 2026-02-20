@@ -126,6 +126,14 @@ def handle_message(text: str, reply_fn) -> None:
         reply_fn(_list_tasks())
         return
 
+    if lower.startswith("enable task:"):
+        reply_fn(_set_task_enabled(text[12:].strip(), True))
+        return
+
+    if lower.startswith("disable task:"):
+        reply_fn(_set_task_enabled(text[13:].strip(), False))
+        return
+
     if lower.startswith("search:"):
         query = text[7:].strip()
         if not query:
@@ -302,6 +310,42 @@ def _list_tasks() -> str:
     return "\n".join(lines)
 
 
+def _set_task_enabled(name: str, enabled: bool) -> str:
+    """Edit a task file's ENABLED header and reload the scheduler."""
+    import scheduler
+    tasks = scheduler.discover_tasks()
+
+    # Match by task name (from header) or file stem, case-insensitive
+    match = None
+    for t in tasks:
+        if (t["name"].lower() == name.lower() or
+                Path(t["path"]).stem.lower() == name.lower()):
+            match = t
+            break
+
+    if not match:
+        available = ", ".join(Path(t["path"]).stem for t in tasks) or "none"
+        return f"Task '{name}' not found.\nAvailable tasks: {available}"
+
+    path = Path(match["path"])
+    content = path.read_text()
+    new_content = re.sub(
+        r'^(#\s*ENABLED:\s*).*$',
+        lambda m: m.group(1) + ("true" if enabled else "false"),
+        content,
+        flags=re.MULTILINE | re.IGNORECASE,
+    )
+
+    if new_content == content:
+        return f"Task '{name}' has no ENABLED header — cannot modify."
+
+    path.write_text(new_content)
+    scheduler.reload()
+
+    action = "enabled" if enabled else "disabled"
+    return f"Task '{Path(match['path']).stem}' {action} and scheduler reloaded."
+
+
 def _format_memories(results: list) -> str:
     """Format memories for LLM injection — brief and structured."""
     lines = []
@@ -343,7 +387,9 @@ def _help_text() -> str:
         help / ?            Show this help message
         setup               Re-run the setup wizard (to add Telegram etc.)
         skills              List skill files (AI prompt templates)
-        tasks               List task files (local automation)
+        tasks               List task files and their status
+        enable task: <name> Enable a task and reload the scheduler
+        disable task: <name> Disable a task and reload the scheduler
         search: <query>     Search your memory for a topic
         ingest: <url>       Fetch and store a web page
         ingest pdf: <path>  Extract and store text from a PDF
