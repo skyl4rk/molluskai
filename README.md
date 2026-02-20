@@ -121,6 +121,19 @@ The onboarding setup asks for this ID so that only you can send messages to your
 
 ---
 
+## Telegram Commands
+
+All terminal commands work over Telegram as plain text messages. In addition:
+
+| Action | How |
+|--------|-----|
+| Chat with the agent | Send any text message |
+| All terminal commands | Type them as text (e.g. `tasks`, `model: ...`) |
+| Ingest a PDF | Send the PDF file as an attachment |
+| Send a voice message | Record and send a voice note — transcribed automatically |
+
+---
+
 ## Changing the Model
 
 Switch models instantly without restarting — from terminal or Telegram:
