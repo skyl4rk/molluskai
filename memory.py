@@ -29,6 +29,11 @@ EMBEDDING_DIM = 384  # BAAI/bge-small-en-v1.5 produces 384-dimensional vectors
 # Optional dependency: fastembed
 # ---------------------------------------------------------------------------
 try:
+    # Suppress onnxruntime's GPU discovery warning on devices without a GPU
+    # (e.g. Raspberry Pi). This is cosmetic — onnxruntime falls back to CPU fine.
+    import os as _os
+    _os.environ.setdefault("ORT_LOGGING_LEVEL", "3")
+
     from fastembed import TextEmbedding as _TextEmbedding
     _embed_model = _TextEmbedding("BAAI/bge-small-en-v1.5")
     EMBEDDINGS_AVAILABLE = True
@@ -42,11 +47,20 @@ except Exception:
 # ---------------------------------------------------------------------------
 try:
     import sqlite_vec as _sqlite_vec
+    # Test-load the native extension now rather than at first use.
+    # Catches architecture mismatches (e.g. ELFCLASS32 on a 64-bit Python)
+    # that only surface when the .so is actually loaded, not on import.
+    _test = sqlite3.connect(":memory:")
+    _test.enable_load_extension(True)
+    _sqlite_vec.load(_test)
+    _test.enable_load_extension(False)
+    _test.close()
     SQLITE_VEC_AVAILABLE = True
     print("[memory] sqlite-vec loaded — using KNN vector search")
-except Exception:
+except Exception as e:
     SQLITE_VEC_AVAILABLE = False
-    print("[memory] sqlite-vec not available — using numpy cosine similarity")
+    _reason = "binary architecture mismatch" if "ELF" in str(e) else str(e)
+    print(f"[memory] sqlite-vec unavailable ({_reason}) — using numpy cosine similarity")
 
 # ---------------------------------------------------------------------------
 # Optional dependency: numpy (only needed if sqlite-vec is absent)
