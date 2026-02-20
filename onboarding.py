@@ -95,19 +95,54 @@ def _run_gui() -> None:
         tk.Entry(frame, **entry_kwargs).grid(row=row_num, column=1, **pad)
         return var
 
-    api_key_var  = row("OpenRouter API Key:",             0, show="*")
-    tg_token_var = row("Telegram Token (optional):",      2)
-    tg_users_var = row("Allowed User IDs (optional):",   3)
-    tg_chat_var  = row("Telegram Chat ID (optional):",   4)
+    api_key_var  = row("OpenRouter API Key:", 0, show="*")
 
-    tk.Label(
+    # --- Telegram section with enable/disable toggle ---
+    tk.Label(frame, text="─" * 38, fg="grey").grid(
+        row=2, column=0, columnspan=2, pady=(8, 0)
+    )
+
+    use_telegram = tk.BooleanVar(value=False)
+
+    tg_token_var = tk.StringVar()
+    tg_users_var = tk.StringVar()
+    tg_chat_var  = tk.StringVar()
+
+    tg_label      = tk.Label(frame, text="Telegram Bot Token:",    anchor="w", fg="grey")
+    tg_users_label= tk.Label(frame, text="Allowed User IDs:",      anchor="w", fg="grey")
+    tg_chat_label = tk.Label(frame, text="Telegram Chat ID:",      anchor="w", fg="grey")
+    tg_token_entry= tk.Entry(frame, textvariable=tg_token_var,     width=36, state="disabled")
+    tg_users_entry= tk.Entry(frame, textvariable=tg_users_var,     width=36, state="disabled")
+    tg_chat_entry = tk.Entry(frame, textvariable=tg_chat_var,      width=36, state="disabled")
+    tg_hint       = tk.Label(
         frame,
-        text="Telegram fields are optional — leave blank to use terminal only. Add later by editing .env",
-        fg="grey",
-        font=("TkDefaultFont", 8),
-        wraplength=320,
-        justify="left",
-    ).grid(row=5, column=1, sticky="w", padx=12)
+        text="Find your user ID by messaging @userinfobot on Telegram.",
+        fg="grey", font=("TkDefaultFont", 8), wraplength=300, justify="left",
+    )
+
+    for widget, r in [
+        (tg_label,       4), (tg_token_entry, 4),
+        (tg_users_label, 5), (tg_users_entry, 5),
+        (tg_chat_label,  6), (tg_chat_entry,  6),
+        (tg_hint,        7),
+    ]:
+        col = 1 if widget in (tg_token_entry, tg_users_entry, tg_chat_entry, tg_hint) else 0
+        widget.grid(row=r, column=col, sticky="w", padx=12, pady=3)
+
+    def toggle_telegram():
+        state = "normal" if use_telegram.get() else "disabled"
+        colour = "black" if use_telegram.get() else "grey"
+        for e in (tg_token_entry, tg_users_entry, tg_chat_entry):
+            e.config(state=state)
+        for l in (tg_label, tg_users_label, tg_chat_label):
+            l.config(fg=colour)
+
+    tk.Checkbutton(
+        frame,
+        text="Enable Telegram gateway  (I have a bot token from @BotFather)",
+        variable=use_telegram,
+        command=toggle_telegram,
+    ).grid(row=3, column=0, columnspan=2, sticky="w", padx=12, pady=(4, 0))
 
     # Model selector
     tk.Label(frame, text="Model:", anchor="w").grid(row=1, column=0, sticky="w", **pad)

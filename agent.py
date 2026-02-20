@@ -112,6 +112,12 @@ def handle_message(text: str, reply_fn) -> None:
         reply_fn(_help_text())
         return
 
+    if lower == "setup":
+        reply_fn("Re-running setup. Restart the agent after saving to apply changes.")
+        import onboarding
+        onboarding.run()
+        return
+
     if lower == "skills":
         reply_fn(_list_skills())
         return
@@ -335,6 +341,7 @@ def _help_text() -> str:
         MolluskAI — Commands
         ─────────────────────────────────────────
         help / ?            Show this help message
+        setup               Re-run the setup wizard (to add Telegram etc.)
         skills              List skill files (AI prompt templates)
         tasks               List task files (local automation)
         search: <query>     Search your memory for a topic

@@ -35,6 +35,11 @@ def start(message_handler) -> None:
         print("[telegram] No TELEGRAM_TOKEN set — Telegram gateway disabled.")
         return
 
+    if not config.TELEGRAM_ALLOWED_USERS:
+        print("[telegram] WARNING: TELEGRAM_ALLOWED_USERS is empty — any Telegram user")
+        print("[telegram]          can talk to this bot. Add your user ID to .env for security.")
+        print("[telegram]          Find your ID by messaging @userinfobot on Telegram.")
+
     thread = threading.Thread(
         target=_run_bot,
         args=(config.TELEGRAM_TOKEN, message_handler),
