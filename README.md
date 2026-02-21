@@ -112,6 +112,7 @@ The onboarding setup asks for this ID so that only you can send messages to your
 | `setup` | Re-run the setup wizard | None |
 | `skills` | List skill files | None |
 | `tasks` | List task files with status | None |
+| `run task: <name>` | Run a task immediately on demand | None |
 | `enable task: <name>` | Enable a task, reload scheduler | None |
 | `disable task: <name>` | Disable a task, reload scheduler | None |
 | `model` | Show current model | None |
@@ -303,6 +304,64 @@ Supported schedule strings:
 - `every hour`
 - `every 30 minutes`
 - `every 10 seconds` *(good for testing)*
+- `on demand` *(never auto-runs — triggered manually with `run task: <name>`)*
+
+---
+
+## On-Demand Tasks
+
+Tasks with `SCHEDULE: on demand` never run automatically. They are triggered manually at any time — from Telegram or terminal:
+
+```
+run task: df_report
+run task: weather_report
+```
+
+The task runs immediately in the background and sends its output to Telegram. The `run task:` command works on any task, including scheduled ones.
+
+### Included on-demand tasks
+
+| Task | What it does |
+|------|-------------|
+| `df_report` | Sends full `df -h` disk usage output to Telegram |
+| `weather_report` | Sends today's weather via [wttr.in](https://wttr.in) (no API key needed) |
+
+To set a location for the weather report, edit `LOCATION` at the top of `tasks/weather_report.py`:
+
+```python
+LOCATION = "London"   # or leave blank to auto-detect by IP
+```
+
+### Writing your own on-demand task
+
+Ask the agent: *"Create an on-demand task that runs git pull and sends the output to Telegram."*
+
+Or write one manually — use `SCHEDULE: on demand` in the header:
+
+```python
+# TASK: Git Pull
+# SCHEDULE: on demand
+# ENABLED: false
+# DESCRIPTION: Runs git pull on the molluskai directory and sends output to Telegram
+
+import subprocess
+import requests
+import config
+
+def run():
+    result = subprocess.run(
+        ["git", "pull"],
+        capture_output=True, text=True,
+        cwd="/home/pi/molluskai"   # adjust to your install path
+    )
+    output = result.stdout or result.stderr or "No output."
+    if config.TELEGRAM_TOKEN and config.TELEGRAM_CHAT_ID:
+        requests.post(
+            f"https://api.telegram.org/bot{config.TELEGRAM_TOKEN}/sendMessage",
+            json={"chat_id": config.TELEGRAM_CHAT_ID, "text": output[:4000]},
+            timeout=10,
+        )
+```
 
 ---
 

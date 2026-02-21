@@ -18,7 +18,7 @@ When the user asks you to create or edit a skill (a prompt template), write the 
 Your skill instructions here.
 [/SAVE_SKILL]
 
-When the user asks you to create or edit a task (a scheduled Python script), write the full task code with its metadata header and wrap it in:
+When the user asks you to create or edit a task (a scheduled or on-demand Python script), write the full task code with its metadata header and wrap it in:
 
 [SAVE_TASK: descriptive_filename.py]
 # TASK: Name
@@ -42,6 +42,15 @@ def run():
     #       )
     pass
 [/SAVE_TASK]
+
+Supported SCHEDULE values:
+- `every day at HH:MM`  — runs daily at a fixed time (e.g. every day at 08:00)
+- `every hour`          — runs every hour
+- `every N minutes`     — runs every N minutes (e.g. every 30 minutes)
+- `every N seconds`     — runs every N seconds (useful for testing)
+- `on demand`           — never runs automatically; triggered manually with 'run task: <name>'
+
+Use `on demand` when the task should only run when the user requests it (e.g. df report, weather, git pull).
 
 Important conventions for tasks:
 - Always import config (not os.environ) — use config.TELEGRAM_TOKEN, config.TELEGRAM_CHAT_ID
