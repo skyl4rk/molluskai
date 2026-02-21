@@ -129,6 +129,11 @@ def _register(task: dict) -> bool:
             n = int("".join(c for c in s if c.isdigit()) or "1")
             schedule.every(n).seconds.do(_run_task, path)
 
+        elif s == "on demand":
+            # Intentionally not scheduled — triggered manually via 'run task:'
+            print(f"[scheduler] '{name}' is on-demand only (not scheduled).")
+            return False
+
         else:
             print(f"[scheduler] Unrecognised schedule for '{name}': {s}")
             return False
@@ -171,6 +176,11 @@ def start() -> None:
 
     thread = threading.Thread(target=_loop, daemon=True, name="scheduler")
     thread.start()
+
+
+def run_task(path: Path) -> None:
+    """Run a task immediately, outside of its schedule. Used by 'run task:' command."""
+    _run_task(path)
 
 
 def reload() -> None:

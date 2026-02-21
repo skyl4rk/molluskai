@@ -180,6 +180,10 @@ def handle_message(text: str, reply_fn) -> None:
         reply_fn(_format_notes(project, notes, query))
         return
 
+    if lower.startswith("run task:"):
+        reply_fn(_run_task_now(text[9:].strip()))
+        return
+
     if lower.startswith("enable task:"):
         reply_fn(_set_task_enabled(text[12:].strip(), True))
         return
@@ -406,6 +410,28 @@ def _format_notes(project: str, notes: list, query: str = None) -> str:
     return "\n".join(lines)
 
 
+def _run_task_now(name: str) -> str:
+    """Trigger a task immediately regardless of its schedule."""
+    import scheduler
+    import threading
+    tasks = scheduler.discover_tasks()
+
+    match = None
+    for t in tasks:
+        if (t["name"].lower() == name.lower() or
+                Path(t["path"]).stem.lower() == name.lower()):
+            match = t
+            break
+
+    if not match:
+        available = ", ".join(Path(t["path"]).stem for t in tasks) or "none"
+        return f"Task '{name}' not found.\nAvailable tasks: {available}"
+
+    path = Path(match["path"])
+    threading.Thread(target=scheduler.run_task, args=(path,), daemon=True).start()
+    return f"Running {path.stem}…"
+
+
 def _set_task_enabled(name: str, enabled: bool) -> str:
     """Edit a task file's ENABLED header and reload the scheduler."""
     import scheduler
@@ -484,6 +510,7 @@ def _help_text() -> str:
         setup               Re-run the setup wizard (to add Telegram etc.)
         skills              List skill files (AI prompt templates)
         tasks               List task files and their status
+        run task: <name>    Run a task immediately (any task, any schedule)
         enable task: <name> Enable a task and reload the scheduler
         disable task: <name> Disable a task and reload the scheduler
         model               Show current model
