@@ -30,6 +30,21 @@ TELEGRAM_ALLOWED_USERS = [
     if uid.strip().isdigit()
 ]
 
+# --- Email gateway settings ---
+EMAIL_IMAP_HOST     = os.getenv("EMAIL_IMAP_HOST", "")
+EMAIL_IMAP_PORT     = int(os.getenv("EMAIL_IMAP_PORT", "993"))
+EMAIL_IMAP_USER     = os.getenv("EMAIL_IMAP_USER", "")
+EMAIL_IMAP_PASSWORD = os.getenv("EMAIL_IMAP_PASSWORD", "")
+EMAIL_SMTP_HOST     = os.getenv("EMAIL_SMTP_HOST", "")
+EMAIL_SMTP_PORT     = int(os.getenv("EMAIL_SMTP_PORT", "587"))
+EMAIL_SMTP_USER     = os.getenv("EMAIL_SMTP_USER", "")
+EMAIL_SMTP_PASSWORD = os.getenv("EMAIL_SMTP_PASSWORD", "")
+EMAIL_POLL_INTERVAL = int(os.getenv("EMAIL_POLL_INTERVAL", "60"))
+
+# Comma-separated list of allowed sender addresses (blank = accept all)
+_raw_email_allowed  = os.getenv("EMAIL_ALLOWED_FROM", "")
+EMAIL_ALLOWED_FROM  = [e.strip() for e in _raw_email_allowed.split(",") if e.strip()]
+
 # --- Popular models shown in the onboarding dropdown ---
 POPULAR_MODELS = [
     "google/gemini-2.0-flash-001",

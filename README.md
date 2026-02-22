@@ -22,6 +22,7 @@ Inspired by [PicoClaw](https://github.com/sipeed/picoclaw).
 - **Diet logging** — speak meals into Telegram, the agent estimates calories and sends a morning summary of the previous day
 - **Expense tracking** — log purchases by voice or text with automatic categorisation; monthly spending report by category delivered to Telegram
 - **Workout log** — log exercise sessions by voice or text; weekly training summary delivered every Monday morning
+- **Email gateway** — receive emails via IMAP, auto-reply with the LLM, and forward to a human when needed
 - **Low cost** — three-layer context (identity + relevant memories + recent turns) keeps each call to ~3,000 tokens
 - **Readable code** — written to be understood and extended; ideal for learning on Raspberry Pi
 
@@ -835,6 +836,89 @@ recall: workouts
 ```
 
 Retrieves logged sessions. Ask the agent to identify patterns, flag rest days, or suggest what to focus on next.
+
+---
+
+## Email Gateway
+
+MolluskAI can monitor an email inbox, respond to messages with the LLM, and forward emails to a human when needed — with no open ports and no webhooks.
+
+### How it works
+
+1. The agent polls your inbox via IMAP every 60 seconds (configurable)
+2. Each new email is passed to the agent as a message
+3. The agent composes a professional auto-reply
+4. If the email needs human attention, the agent includes a forwarding instruction in its response — the email is forwarded automatically and the directive is stripped from the customer-facing reply
+
+### Setup
+
+Add the following to your `.env` file:
+
+```
+EMAIL_IMAP_HOST=imap.gmail.com
+EMAIL_IMAP_PORT=993
+EMAIL_IMAP_USER=you@gmail.com
+EMAIL_IMAP_PASSWORD=your-app-password
+
+EMAIL_SMTP_HOST=smtp.gmail.com
+EMAIL_SMTP_PORT=587
+EMAIL_SMTP_USER=you@gmail.com
+EMAIL_SMTP_PASSWORD=your-app-password
+
+EMAIL_POLL_INTERVAL=60
+EMAIL_ALLOWED_FROM=
+```
+
+Leave `EMAIL_IMAP_HOST` blank to disable the email gateway entirely.
+
+#### Gmail setup
+
+1. Enable IMAP: Gmail Settings → See all settings → Forwarding and POP/IMAP → Enable IMAP
+2. Create an App Password at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) (requires 2-step verification to be on)
+3. Use the App Password as `EMAIL_IMAP_PASSWORD` and `EMAIL_SMTP_PASSWORD` — not your regular Gmail password
+
+#### Other providers
+
+| Provider | IMAP host | SMTP host |
+|----------|-----------|-----------|
+| Gmail | `imap.gmail.com` | `smtp.gmail.com` |
+| Outlook / Hotmail | `imap.outlook.com` | `smtp.office365.com` |
+| Yahoo | `imap.mail.yahoo.com` | `smtp.mail.yahoo.com` |
+| Any standard provider | Check provider docs | Check provider docs |
+
+### Configuring the forwarding address
+
+Edit `skills/email_handler.md` and set your forwarding address:
+
+```
+**Default forward: `sales@yourcompany.com`**
+```
+
+The agent uses this address when it decides an email needs human follow-up (customer inquiries, support requests, etc.).
+
+### Sender whitelist
+
+`EMAIL_ALLOWED_FROM` is a comma-separated list of email addresses allowed to contact the agent. Leave it blank to accept emails from anyone — appropriate for a customer-facing inbox.
+
+```
+EMAIL_ALLOWED_FROM=trusted@example.com,partner@example.com
+```
+
+### How the forwarding directive works
+
+The agent includes a special tag in its response when forwarding is needed:
+
+```
+[FORWARD_EMAIL: sales@yourcompany.com]
+Customer inquiry about bulk pricing from John Smith.
+[/FORWARD_EMAIL]
+```
+
+The gateway strips this from the reply sent to the customer, sends the auto-reply, and sends a separate forwarded email to `sales@yourcompany.com`. The customer only sees the professional auto-reply.
+
+### Response time
+
+Emails are checked every `EMAIL_POLL_INTERVAL` seconds (default: 60). Auto-replies are not instant — document this expectation in your auto-reply text if needed.
 
 ---
 

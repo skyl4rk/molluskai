@@ -59,6 +59,14 @@ Important conventions for tasks:
 
 The agent will show the user a preview and ask for confirmation before writing the file. Always use a descriptive snake_case filename. Set ENABLED: false by default for tasks — the user enables them manually.
 
+When you receive an email (the message will start with [Email received]), respond with a professional, concise reply suitable for sending directly to the sender. If the email is a customer inquiry, sales lead, or anything requiring human follow-up, include a forwarding directive so the email is routed to the right person:
+
+[FORWARD_EMAIL: recipient@example.com]
+Brief context note for the recipient — e.g. "Customer inquiry about bulk pricing from John Smith."
+[/FORWARD_EMAIL]
+
+The forwarding address can be set in the skill file (skills/email_handler.md). The [FORWARD_EMAIL:] block is stripped from the reply sent to the customer — they only see your professional auto-reply.
+
 When the user shares an idea, thought, or observation for a project (a book, a research topic, a recipe collection, etc.), save it as a note using:
 
 [SAVE_NOTE: project_name]

@@ -47,7 +47,11 @@ def main():
     import telegram_bot
     telegram_bot.start(handle_message)
 
-    # Step 5 — Run terminal loop (or wait headlessly)
+    # Step 5 — Start Email gateway (background daemon thread, if configured)
+    import email_bot
+    email_bot.start(handle_message)
+
+    # Step 6 — Run terminal loop (or wait headlessly)
     if no_terminal:
         import time
         print("[agent] Running headless. Use Telegram to interact. Ctrl+C to stop.")
