@@ -23,6 +23,7 @@ Inspired by [PicoClaw](https://github.com/sipeed/picoclaw).
 - **Expense tracking** — log purchases by voice or text with automatic categorisation; monthly spending report by category delivered to Telegram
 - **Workout log** — log exercise sessions by voice or text; weekly training summary delivered every Monday morning
 - **Email gateway** — receive emails via IMAP, auto-reply with the LLM, and forward to a human when needed
+- **Agent orchestration** — route a question through specialist subagents in parallel, then synthesise their outputs into one response
 - **Low cost** — three-layer context (identity + relevant memories + recent turns) keeps each call to ~3,000 tokens
 - **Readable code** — written to be understood and extended; ideal for learning on Raspberry Pi
 
@@ -339,12 +340,14 @@ All scheduled tasks are disabled by default. Enable with `enable task: <name>`.
 | Task | What it does |
 |------|-------------|
 | `df_report` | Sends full `df -h` disk usage output to Telegram |
-| `weather_report` | Sends today's weather via [wttr.in](https://wttr.in) (no API key needed) |
+| `weather_report` | Sends today's weather via [open-meteo.com](https://open-meteo.com) (no API key needed) |
 
-To set a location for the weather report, edit `LOCATION` at the top of `tasks/weather_report.py`:
+To set a location for the weather report, edit the top of `tasks/weather_report.py`:
 
 ```python
-LOCATION = "London"   # or leave blank to auto-detect by IP
+LOCATION = "London"          # city name (geocoded automatically)
+LOCATION = "51.5074,-0.1278" # or explicit coordinates
+LOCATION = ""                # uses DEFAULT_LATITUDE / DEFAULT_LONGITUDE
 ```
 
 ### Writing your own on-demand task
@@ -638,22 +641,37 @@ rm ~/install.sh
 
 ```
 molluskai/
-├── agent.py           # Entry point and main loop
+├── agent.py           # Entry point, main loop, command dispatcher
 ├── config.py          # Settings loader (.env → module constants)
 ├── llm.py             # OpenRouter API calls and usage logging
 ├── memory.py          # Vector memory (sqlite-vec + fastembed, with fallbacks)
 ├── onboarding.py      # First-run setup (tkinter GUI or terminal prompts)
 ├── telegram_bot.py    # Telegram polling gateway
+├── email_bot.py       # Email gateway (IMAP polling + SMTP sending)
 ├── scheduler.py       # Task discovery and scheduling
+├── orchestrator.py    # Multi-agent orchestration (ensemble: command)
 ├── transcribe.py      # Voice message transcription (faster-whisper)
 ├── IDENTITY.md        # Agent persona / system prompt
 ├── skills/            # AI prompt templates (markdown, edit freely)
 │   ├── how_to_write_a_skill.md
 │   ├── pdf_ingestion.md
-│   └── cost_report.md
+│   ├── cost_report.md
+│   ├── idea_capture.md
+│   ├── web_monitor.md
+│   ├── diet_log.md
+│   ├── expense_tracker.md
+│   ├── workout_log.md
+│   └── email_handler.md
 ├── tasks/             # Local automation scripts (Python, edit freely)
-│   ├── README.md
-│   └── daily_report.py
+│   ├── daily_report.py          # Daily AI usage summary
+│   ├── diskfree_report.py       # Disk usage alert (>75%)
+│   ├── diet_morning_report.py   # Yesterday's food log and calories
+│   ├── expense_monthly_report.py # Monthly spending by category
+│   ├── workout_weekly_report.py  # Weekly training summary
+│   ├── daily_quote.py           # Daily stoic quote (single model)
+│   ├── ensemble_insight.py      # Daily insight (multi-model ensemble)
+│   ├── df_report.py             # On-demand: full df -h output
+│   └── weather_report.py        # On-demand: weather via open-meteo.com
 ├── data/              # Database and logs (auto-created, not committed)
 │   ├── memory.db
 │   └── usage.log
@@ -661,8 +679,6 @@ molluskai/
 ├── .env.example       # Template
 ├── .gitignore
 ├── LICENSE            # MIT
-├── FEASIBILITY.md     # Project feasibility analysis
-├── IMPLEMENTATION.md  # Implementation notes
 └── requirements.txt
 ```
 
