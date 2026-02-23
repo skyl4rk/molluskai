@@ -320,6 +320,20 @@ run task: weather_report
 
 The task runs immediately in the background and sends its output to Telegram. The `run task:` command works on any task, including scheduled ones.
 
+### Included scheduled tasks
+
+| Task | Schedule | What it does |
+|------|----------|-------------|
+| `daily_report` | every day at 08:00 | Sends yesterday's AI token usage summary to Telegram |
+| `diskfree_report` | every day at 08:00 | Alerts if the main disk exceeds 75% usage |
+| `diet_morning_report` | every day at 07:30 | Sends yesterday's food log and calorie total |
+| `expense_monthly_report` | 1st of each month | Sends last month's spending grouped by category |
+| `workout_weekly_report` | every Monday | Sends last week's training sessions and totals |
+| `daily_quote` | every day at 07:00 | Generates a stoic quote and reflection using a specified model |
+| `ensemble_insight` | every day at 08:00 | Three models answer a question in parallel; a fourth synthesises the best answer |
+
+All scheduled tasks are disabled by default. Enable with `enable task: <name>`.
+
 ### Included on-demand tasks
 
 | Task | What it does |
@@ -362,6 +376,64 @@ def run():
             json={"chat_id": config.TELEGRAM_CHAT_ID, "text": output[:4000]},
             timeout=10,
         )
+```
+
+---
+
+## Multi-Model Tasks
+
+Tasks can call the OpenRouter API directly, bypassing the main agent's model. This lets you choose the best (or cheapest) model for each specific job.
+
+### Using a different model in a task
+
+Set `TASK_MODEL` at the top of the task file and call the API directly:
+
+```python
+TASK_MODEL = "anthropic/claude-3-5-haiku"
+
+def _ask(prompt):
+    response = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers={"Authorization": f"Bearer {config.OPENROUTER_API_KEY}"},
+        json={"model": TASK_MODEL, "messages": [{"role": "user", "content": prompt}]},
+        timeout=60,
+    )
+    return response.json()["choices"][0]["message"]["content"].strip()
+```
+
+See `tasks/daily_quote.py` for a complete working example.
+
+### Running multiple models in parallel
+
+Using Python's `threading` module, a task can call several models simultaneously and combine their responses. The total time is roughly that of the slowest single call rather than the sum of all calls.
+
+### Ensemble tasks
+
+The included `ensemble_insight` task demonstrates the ensemble pattern:
+
+1. **Three panel models** answer the same question simultaneously in parallel threads (Haiku, Gemini, Llama)
+2. Their answers are assembled into a synthesis prompt
+3. **A fourth model** reads all three and produces one refined response
+4. Only the synthesis is sent to Telegram
+
+To customise it, edit the top of `tasks/ensemble_insight.py`:
+
+```python
+DAILY_QUESTION = "What is one practical thing a person can do today to think more clearly?"
+
+PANEL_MODELS = [
+    ("Haiku",  "anthropic/claude-3-5-haiku"),
+    ("Gemini", "google/gemini-2.0-flash-001"),
+    ("Llama",  "meta-llama/llama-3.3-70b-instruct"),
+]
+
+SYNTHESISER_MODEL = "anthropic/claude-3-5-haiku"
+```
+
+Add or remove entries from `PANEL_MODELS` and the threading adjusts automatically. Test immediately with:
+
+```
+run task: ensemble_insight
 ```
 
 ---
