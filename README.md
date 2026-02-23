@@ -380,6 +380,62 @@ def run():
 
 ---
 
+## Agent Orchestration
+
+The `ensemble:` command routes a question through a panel of specialist subagents — each with a distinct role and model — then passes all their outputs to a synthesiser that produces one final response.
+
+```
+ensemble: What are the main risks of adopting AI in a small business?
+```
+
+### How it works
+
+1. The main agent acknowledges the request immediately: *"Consulting specialists: Analyst, Devil's Advocate, Pragmatist…"*
+2. Three specialist subagents run **in parallel**, each answering from their own perspective:
+   - **Analyst** (Gemini Flash) — structured breakdown, key components, assumptions
+   - **Devil's Advocate** (Llama 70B) — counterarguments, risks, overlooked consequences
+   - **Pragmatist** (Claude Haiku) — practical constraints, concrete next steps
+3. A **synthesiser** (Claude Haiku) reads all three outputs and weaves them into one coherent final answer
+4. The synthesised response is returned to the user — no raw specialist outputs shown
+
+### Customising the specialists
+
+Edit `orchestrator.py` to change roles, models, or add/remove agents:
+
+```python
+SUBAGENTS = [
+    {
+        "name":  "Historian",
+        "model": "google/gemini-2.0-flash-001",
+        "role":  "You are a historian. When given a question, provide relevant historical context and precedents...",
+    },
+    {
+        "name":  "Economist",
+        "model": "meta-llama/llama-3.3-70b-instruct",
+        "role":  "You are an economist. Analyse the question through the lens of incentives, trade-offs, and resource allocation...",
+    },
+    # add as many as you need
+]
+
+SYNTHESISER = {
+    "model": "anthropic/claude-3-5-haiku",
+    "role":  "You are a synthesis expert...",
+}
+```
+
+The number of subagents is flexible — threading adjusts automatically.
+
+### Difference from the ensemble_insight task
+
+| | `ensemble:` command | `ensemble_insight` task |
+|---|---|---|
+| Triggered by | User question | Schedule (daily) |
+| Question | Whatever the user asks | Fixed `DAILY_QUESTION` |
+| Returns to | User (terminal or Telegram) | Telegram only |
+| Purpose | On-demand reasoning | Daily automated insight |
+
+---
+
 ## Multi-Model Tasks
 
 Tasks can call the OpenRouter API directly, bypassing the main agent's model. This lets you choose the best (or cheapest) model for each specific job.

@@ -184,6 +184,15 @@ def handle_message(text: str, reply_fn) -> None:
         reply_fn(_format_notes(project, notes, query))
         return
 
+    if lower.startswith("ensemble:"):
+        question = text[9:].strip()
+        if not question:
+            reply_fn("Usage: ensemble: <question>")
+            return
+        import orchestrator
+        orchestrator.run(question, reply_fn)
+        return
+
     if lower.startswith("run task:"):
         reply_fn(_run_task_now(text[9:].strip()))
         return
@@ -514,6 +523,7 @@ def _help_text() -> str:
         setup               Re-run the setup wizard (to add Telegram etc.)
         skills              List skill files (AI prompt templates)
         tasks               List task files and their status
+        ensemble: <question> Route a question through specialist subagents and synthesise
         run task: <name>    Run a task immediately (any task, any schedule)
         enable task: <name> Enable a task and reload the scheduler
         disable task: <name> Disable a task and reload the scheduler
