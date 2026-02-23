@@ -126,6 +126,8 @@ def run(question: str, reply_fn) -> None:
     synthesis = _ask(SYNTHESISER["model"], SYNTHESISER["role"], synthesis_prompt)
 
     if synthesis:
+        with open("synthesis_output.txt", "a") as f:
+            f.write(f"Question: {question}\n\n{synthesis}\n\n---\n\n")
         reply_fn(synthesis)
     else:
         # Fallback: return the raw specialist outputs if synthesis fails
