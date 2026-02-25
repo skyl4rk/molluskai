@@ -258,6 +258,25 @@ def handle_message(text: str, reply_fn) -> None:
         reply_fn(f"Error contacting OpenRouter: {e}")
         return
 
+    # --- Agentic file-read loop ---
+    # If the LLM responds with [READ_FILE: path], read the file and call again.
+    # Repeats up to 3 times so the LLM can read multiple files if needed.
+    for _ in range(3):
+        _, file_req = _extract_read_file_directive(response)
+        if not file_req:
+            break
+        file_content = _safe_read_file(file_req["path"])
+        messages.append({"role": "assistant", "content": response})
+        messages.append({
+            "role": "user",
+            "content": f"[File: {file_req['path']}]\n{file_content}",
+        })
+        try:
+            response = llm.chat(messages, system)
+        except Exception as e:
+            reply_fn(f"Error contacting OpenRouter: {e}")
+            return
+
     # Store both sides of the exchange in the conversation table
     memory.store_conversation("user", text)
     memory.store_conversation("assistant", response)
@@ -562,6 +581,39 @@ def _help_text() -> str:
 # ---------------------------------------------------------------------------
 # Skill / Task file-write extraction
 # ---------------------------------------------------------------------------
+
+def _extract_read_file_directive(response: str) -> tuple:
+    """
+    Detect [READ_FILE: path] in an LLM response.
+    Returns (response, {"path": str} | None)
+    """
+    pattern = re.compile(r'\[READ_FILE:\s*([^\]]+)\]', re.IGNORECASE)
+    match = pattern.search(response)
+    if match:
+        return response, {"path": match.group(1).strip()}
+    return response, None
+
+
+def _safe_read_file(path_str: str) -> str:
+    """
+    Read a file within PROJECT_DIR. Prevents path traversal outside it.
+    Returns file content (truncated to last 4000 chars) or an error string.
+    """
+    try:
+        requested = (PROJECT_DIR / path_str).resolve()
+        if not str(requested).startswith(str(PROJECT_DIR.resolve())):
+            return "[Error: access denied — path is outside the project directory]"
+        if not requested.exists():
+            return f"[Error: file not found: {path_str}]"
+        if not requested.is_file():
+            return f"[Error: not a file: {path_str}]"
+        content = requested.read_text(errors="replace")
+        if len(content) > 4000:
+            content = "[...truncated to last 4000 characters...]\n" + content[-4000:]
+        return content
+    except Exception as e:
+        return f"[Error reading file: {e}]"
+
 
 def _extract_note_directive(response: str) -> tuple:
     """

@@ -2,7 +2,9 @@
 
 When the user asks for a usage report, cost summary, token count, or API spending:
 
-1. Read the file `data/usage.log`. Each line has the format:
+1. Read the usage log:
+   [READ_FILE: data/usage.log]
+   Each line has the format:
    `YYYY-MM-DD HH:MM:SS | model=<model> | prompt=<n> completion=<n> total=<n>`
 
 2. Summarise in 3–5 bullet points:
