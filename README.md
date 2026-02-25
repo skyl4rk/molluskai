@@ -342,13 +342,14 @@ All scheduled tasks are disabled by default. Enable with `enable task: <name>`.
 | `df_report` | Sends full `df -h` disk usage output to Telegram |
 | `weather_report` | Sends today's weather via [open-meteo.com](https://open-meteo.com) (no API key needed) |
 
-To set a location for the weather report, edit the top of `tasks/weather_report.py`:
+To set a location for the weather report, add `WEATHER_LOCATION` to your `.env` file:
 
-```python
-LOCATION = "London"          # city name (geocoded automatically)
-LOCATION = "51.5074,-0.1278" # or explicit coordinates
-LOCATION = ""                # uses DEFAULT_LATITUDE / DEFAULT_LONGITUDE
 ```
+WEATHER_LOCATION=South Haven, Michigan USA   # city name (geocoded automatically)
+WEATHER_LOCATION=42.4059,-86.2736            # or explicit coordinates
+```
+
+Leave it unset to use the `DEFAULT_LATITUDE` / `DEFAULT_LONGITUDE` values at the top of `tasks/weather_report.py`.
 
 ### Writing your own on-demand task
 
@@ -560,6 +561,47 @@ journalctl --user -u molluskai -f      # Watch live logs
 ```
 
 The `--no-terminal` flag runs the agent headlessly — Telegram and scheduler only, no terminal prompt.
+
+---
+
+## SSH Terminal Access
+
+When MolluskAI is running as a headless systemd service, you can attach an interactive terminal to it over SSH — without stopping the service.
+
+The running instance listens on a Unix socket (`/tmp/molluskai.sock`, owner-only permissions). A `--terminal` session connects to that socket and shares the same memory, conversation context, and Telegram session.
+
+### Connecting
+
+SSH into the Pi, then:
+
+```bash
+cd ~/molluskai
+source venv/bin/activate
+python agent.py --terminal
+```
+
+You will see:
+
+```
+MolluskAI  •  connected to running instance
+Type 'help' for commands, 'exit' to quit.
+
+you>
+```
+
+Type `exit` or press `Ctrl+C` to disconnect. The service keeps running.
+
+### Keeping local changes off GitHub
+
+If you customise MolluskAI on the Pi (local tasks, tweaks to config), use `git stash` before pulling updates so your changes are not lost and never pushed to GitHub:
+
+```bash
+git stash          # save local changes
+git pull           # get latest from GitHub
+git stash pop      # restore your changes on top
+```
+
+Any Pi-specific settings (location, API keys, local task parameters) should live in `.env`, which is excluded from git. This avoids merge conflicts entirely.
 
 ---
 
