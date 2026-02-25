@@ -6,11 +6,10 @@
 import requests
 import config
 
-# Set your location as a city name OR coordinates (latitude, longitude).
-# City name:   LOCATION = "London"
-# Coordinates: LOCATION = "51.5074,-0.1278"
-# Leave blank to use DEFAULT_LATITUDE / DEFAULT_LONGITUDE below.
-LOCATION = ""
+# Set your location in .env as WEATHER_LOCATION (city name or lat,lon).
+# Example: WEATHER_LOCATION=South Haven, Michigan USA
+# Leave unset to use DEFAULT_LATITUDE / DEFAULT_LONGITUDE below.
+LOCATION = config.WEATHER_LOCATION
 
 # Default coordinates used when LOCATION is blank — edit to match your location.
 DEFAULT_LATITUDE  = 51.5074   # London

@@ -18,6 +18,9 @@ load_dotenv(ENV_FILE)
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL   = os.getenv("OPENROUTER_MODEL", "google/gemini-2.0-flash-001")
 
+# --- Weather settings ---
+WEATHER_LOCATION = os.getenv("WEATHER_LOCATION", "")
+
 # --- Telegram settings ---
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
