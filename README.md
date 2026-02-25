@@ -591,15 +591,18 @@ you>
 
 Type `exit` or press `Ctrl+C` to disconnect. The service keeps running.
 
-### Keeping local changes off GitHub
+### Updating MolluskAI on the Pi
 
-If you customise MolluskAI on the Pi (local tasks, tweaks to config), use `git stash` before pulling updates so your changes are not lost and never pushed to GitHub:
+To pull the latest changes from GitHub without losing your local customisations:
 
 ```bash
-git stash          # save local changes
-git pull           # get latest from GitHub
-git stash pop      # restore your changes on top
+git stash                          # save local changes
+git pull                           # get latest from GitHub
+git stash pop                      # restore your local changes on top
+systemctl --user restart molluskai # apply the update
 ```
+
+None of these commands require the virtual environment to be active — `git` and `systemctl` both work from a plain shell. The service uses its own Python path internally.
 
 Any Pi-specific settings (location, API keys, local task parameters) should live in `.env`, which is excluded from git. This avoids merge conflicts entirely.
 
