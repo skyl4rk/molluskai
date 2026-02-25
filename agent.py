@@ -3,6 +3,7 @@
 # Usage:
 #   python agent.py                  # terminal + telegram + scheduler
 #   python agent.py --no-terminal    # headless: telegram + scheduler only
+#   python agent.py --terminal       # attach a terminal to a running headless instance
 #
 # On first run (no .env found), the onboarding setup is shown.
 # After that, the agent starts all components and enters the main loop.
@@ -12,7 +13,8 @@ import sys
 import textwrap
 from pathlib import Path
 
-PROJECT_DIR = Path(__file__).parent
+PROJECT_DIR  = Path(__file__).parent
+SOCKET_PATH  = "/tmp/molluskai.sock"
 
 # Tracks a pending skill or task file write awaiting user confirmation.
 # Set when the LLM response contains a [SAVE_SKILL:...] or [SAVE_TASK:...] block.
@@ -24,7 +26,13 @@ _pending_write: dict = {}
 # ---------------------------------------------------------------------------
 
 def main():
-    no_terminal = "--no-terminal" in sys.argv
+    no_terminal   = "--no-terminal" in sys.argv
+    terminal_only = "--terminal"    in sys.argv
+
+    # --terminal: attach to a running headless instance via Unix socket
+    if terminal_only:
+        _terminal_socket_loop()
+        return
 
     # Step 1 — Onboarding: run if .env is missing or incomplete
     import config
@@ -51,7 +59,10 @@ def main():
     import email_bot
     email_bot.start(handle_message)
 
-    # Step 6 — Run terminal loop (or wait headlessly)
+    # Step 6 — Start Unix socket server (allows --terminal SSH sessions)
+    _start_socket_server()
+
+    # Step 7 — Run terminal loop (or wait headlessly)
     if no_terminal:
         import time
         print("[agent] Running headless. Use Telegram to interact. Ctrl+C to stop.")
@@ -628,6 +639,160 @@ def _extract_save_directive(response: str) -> tuple:
             return display, pending
 
     return response, None
+
+
+# ---------------------------------------------------------------------------
+# Unix socket server — lets `python agent.py --terminal` attach over SSH
+# ---------------------------------------------------------------------------
+
+def _start_socket_server() -> None:
+    """Start a Unix socket server so remote terminal clients can connect."""
+    import os
+    import socket
+    import struct
+    import threading
+
+    if os.path.exists(SOCKET_PATH):
+        os.unlink(SOCKET_PATH)
+
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    server.bind(SOCKET_PATH)
+    os.chmod(SOCKET_PATH, 0o600)   # owner only — no other local users
+    server.listen(5)
+
+    def serve():
+        while True:
+            try:
+                conn, _ = server.accept()
+                threading.Thread(
+                    target=_handle_socket_client, args=(conn,), daemon=True
+                ).start()
+            except Exception as e:
+                print(f"[socket] Accept error: {e}")
+                break
+
+    threading.Thread(target=serve, daemon=True).start()
+    print(f"[agent] Socket ready at {SOCKET_PATH}  (connect with: python agent.py --terminal)")
+
+
+def _handle_socket_client(conn) -> None:
+    """
+    Serve one connected terminal client.
+
+    Protocol (length-prefixed, big-endian 4-byte header):
+      Client → Server: <4-byte length><message bytes>
+      Server → Client: <4-byte length><reply bytes>  (one frame per reply_fn call)
+                       <4-byte 0x00000000>            (DONE sentinel)
+    """
+    import struct
+
+    def recv_exactly(n: int) -> bytes | None:
+        buf = b""
+        while len(buf) < n:
+            chunk = conn.recv(n - len(buf))
+            if not chunk:
+                return None
+            buf += chunk
+        return buf
+
+    def send_framed(text: str) -> None:
+        data = text.encode("utf-8")
+        try:
+            conn.sendall(struct.pack(">I", len(data)) + data)
+        except Exception:
+            pass
+
+    def send_done() -> None:
+        try:
+            conn.sendall(struct.pack(">I", 0))
+        except Exception:
+            pass
+
+    try:
+        while True:
+            raw_len = recv_exactly(4)
+            if not raw_len:
+                break
+            length = struct.unpack(">I", raw_len)[0]
+            if length == 0:
+                break
+            data = recv_exactly(length)
+            if not data:
+                break
+            handle_message(data.decode("utf-8"), send_framed)
+            send_done()
+    except Exception as e:
+        print(f"[socket] Client error: {e}")
+    finally:
+        conn.close()
+
+
+def _terminal_socket_loop() -> None:
+    """
+    Connect to a running headless instance via its Unix socket and provide
+    an interactive terminal — used when agent is started with --terminal.
+    """
+    import socket
+    import struct
+
+    def recv_exactly(sock, n: int) -> bytes | None:
+        buf = b""
+        while len(buf) < n:
+            chunk = sock.recv(n - len(buf))
+            if not chunk:
+                return None
+            buf += chunk
+        return buf
+
+    try:
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.connect(SOCKET_PATH)
+    except FileNotFoundError:
+        print(f"Error: no running molluskai instance found ({SOCKET_PATH} missing).")
+        print("Start the agent first:  python agent.py --no-terminal")
+        return
+    except ConnectionRefusedError:
+        print(f"Error: could not connect to {SOCKET_PATH}.")
+        return
+
+    print("\nMolluskAI  •  connected to running instance")
+    print("Type 'help' for commands, 'exit' to quit.\n")
+
+    try:
+        while True:
+            try:
+                text = input("you> ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print("\nDisconnected.")
+                break
+
+            if text.lower() in ("exit", "quit"):
+                print("Disconnected.")
+                break
+
+            if not text:
+                continue
+
+            # Send message
+            data = text.encode("utf-8")
+            sock.sendall(struct.pack(">I", len(data)) + data)
+
+            # Read replies until DONE sentinel (length == 0)
+            while True:
+                raw_len = recv_exactly(sock, 4)
+                if not raw_len:
+                    print("[connection closed]")
+                    return
+                length = struct.unpack(">I", raw_len)[0]
+                if length == 0:
+                    break
+                reply_data = recv_exactly(sock, length)
+                if not reply_data:
+                    print("[connection closed]")
+                    return
+                print(f"\nagent> {reply_data.decode('utf-8')}\n")
+    finally:
+        sock.close()
 
 
 # ---------------------------------------------------------------------------
