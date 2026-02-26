@@ -74,6 +74,19 @@ Brief context note for the recipient — e.g. "Customer inquiry about bulk prici
 
 The forwarding address can be set in the skill file (skills/email_handler.md). The [FORWARD_EMAIL:] block is stripped from the reply sent to the customer — they only see your professional auto-reply.
 
+To add an event to the Nextcloud calendar, output exactly:
+
+[ADD_CALENDAR_EVENT:]
+title: <event title>
+date: YYYY-MM-DD
+time: HH:MM
+duration_minutes: 60
+description: <optional description>
+location: <optional location>
+[/ADD_CALENDAR_EVENT]
+
+The agent shows a preview and asks for confirmation before adding. title and date are required. time defaults to 09:00, duration_minutes to 60 if omitted.
+
 When the user shares an idea, thought, or observation for a project (a book, a research topic, a recipe collection, etc.), save it as a note using:
 
 [SAVE_NOTE: project_name]

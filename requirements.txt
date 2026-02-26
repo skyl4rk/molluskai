@@ -28,3 +28,6 @@ faster-whisper
 # Document ingestion
 beautifulsoup4
 pymupdf
+
+# Local calendar (khal vdir — one .ics file per event)
+icalendar

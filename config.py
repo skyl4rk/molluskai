@@ -48,6 +48,24 @@ EMAIL_POLL_INTERVAL = int(os.getenv("EMAIL_POLL_INTERVAL", "60"))
 _raw_email_allowed  = os.getenv("EMAIL_ALLOWED_FROM", "")
 EMAIL_ALLOWED_FROM  = [e.strip() for e in _raw_email_allowed.split(",") if e.strip()]
 
+# --- khal local calendar settings ---
+# Path to khal's local vdir (one .ics file per event).
+# Default matches khal's standard location; override in .env if different.
+KHAL_CALENDAR_DIR = os.path.expanduser(
+    os.getenv("KHAL_CALENDAR_DIR", "~/.local/share/khal/calendars/personal")
+)
+
+# --- CRM feature flags ---
+CRM_EMAIL_DRAFT_ENABLED = os.getenv("CRM_EMAIL_DRAFT_ENABLED", "false").lower() == "true"
+CRM_AUTO_ADD_MODE       = os.getenv("CRM_AUTO_ADD_MODE", "false").lower() == "true"
+
+# Comma-separated email domains/keywords to skip during contact scanning
+_raw_skip = os.getenv(
+    "CRM_SKIP_DOMAINS",
+    "newsletter,mailchimp,noreply,no-reply,donotreply,mailer-daemon,bounce,notifications,marketing",
+)
+CRM_SKIP_DOMAINS = [d.strip() for d in _raw_skip.split(",") if d.strip()]
+
 # --- Popular models shown in the onboarding dropdown ---
 POPULAR_MODELS = [
     "google/gemini-2.0-flash-001",

@@ -47,6 +47,10 @@ def main():
     import memory
     memory.init()
 
+    # Step 2.5 — Initialise the CRM database
+    import crm
+    crm.init()
+
     # Step 3 — Start the task scheduler (background daemon thread)
     import scheduler
     scheduler.start()
@@ -104,13 +108,18 @@ def handle_message(text: str, reply_fn) -> None:
     # from the user is treated as confirmation ("yes") or cancellation ("no").
     if _pending_write:
         if lower in ("yes", "y", "confirm"):
-            path    = Path(_pending_write["path"])
-            content = _pending_write["content"]
-            ftype   = _pending_write["type"]
-            _pending_write = {}
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(content)
-            reply_fn(f"Saved {ftype}: {path.name}\nPath: {path}")
+            ftype = _pending_write.get("type", "file")
+            if ftype == "calendar_event":
+                pending = dict(_pending_write)
+                _pending_write = {}
+                _execute_calendar_event(pending, reply_fn)
+            else:
+                path    = Path(_pending_write["path"])
+                content = _pending_write["content"]
+                _pending_write = {}
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content)
+                reply_fn(f"Saved {ftype}: {path.name}\nPath: {path}")
         elif lower in ("no", "n", "cancel"):
             ftype = _pending_write.get("type", "file")
             _pending_write = {}
@@ -299,8 +308,16 @@ def handle_message(text: str, reply_fn) -> None:
     if pending:
         _pending_write.update(pending)
         reply_fn(cleaned_response)
-    else:
-        reply_fn(response)
+        return
+
+    # Check if the LLM wants to add a calendar event
+    cleaned_response, pending = _extract_calendar_event_directive(response)
+    if pending:
+        _pending_write.update(pending)
+        reply_fn(cleaned_response)
+        return
+
+    reply_fn(response)
 
 
 # ---------------------------------------------------------------------------
@@ -725,6 +742,105 @@ def _extract_save_directive(response: str) -> tuple:
             return display, pending
 
     return response, None
+
+
+# ---------------------------------------------------------------------------
+# Calendar event directive
+# ---------------------------------------------------------------------------
+
+def _extract_calendar_event_directive(response: str) -> tuple:
+    """
+    Detect [ADD_CALENDAR_EVENT:]...[/ADD_CALENDAR_EVENT] in an LLM response.
+
+    Block format:
+        [ADD_CALENDAR_EVENT:]
+        title: Meeting with Jane
+        date: 2026-03-01
+        time: 14:00
+        duration_minutes: 60
+        description: Quarterly review
+        location: Zoom
+        [/ADD_CALENDAR_EVENT]
+
+    Returns (display_response: str, pending_dict | None).
+    pending_dict has type='calendar_event' and the parsed fields.
+    """
+    pattern = re.compile(
+        r'\[ADD_CALENDAR_EVENT:\](.*?)\[/ADD_CALENDAR_EVENT\]',
+        re.DOTALL | re.IGNORECASE,
+    )
+    match = pattern.search(response)
+    if not match:
+        return response, None
+
+    block   = match.group(1).strip()
+    cleaned = pattern.sub("", response).strip()
+
+    # Parse key: value lines (partition on first colon so time values are safe)
+    fields = {}
+    for line in block.splitlines():
+        line = line.strip()
+        if ":" in line:
+            key, _, value = line.partition(":")
+            fields[key.strip().lower()] = value.strip()
+
+    if not fields.get("title") or not fields.get("date"):
+        return cleaned, None
+
+    preview = (
+        f"Title:    {fields.get('title', '')}\n"
+        f"Date:     {fields.get('date', '')}\n"
+        f"Time:     {fields.get('time', 'not set')}\n"
+        f"Duration: {fields.get('duration_minutes', '60')} min\n"
+        f"Desc:     {fields.get('description', '') or '—'}\n"
+        f"Location: {fields.get('location', '') or '—'}"
+    )
+
+    display = (
+        f"{cleaned}\n\n"
+        f"──────────────────────────────\n"
+        f"Ready to add calendar event:\n"
+        f"──────────────────────────────\n"
+        f"{preview}\n"
+        f"──────────────────────────────\n"
+        f"Reply yes to add, no to cancel."
+    )
+
+    pending = {**fields, "type": "calendar_event"}
+    return display, pending
+
+
+def _execute_calendar_event(pending: dict, reply_fn) -> None:
+    """Execute a confirmed calendar event addition via calendar_client."""
+    from datetime import datetime, timedelta
+    import calendar_client
+
+    try:
+        title    = pending.get("title", "Untitled")
+        date_str = pending.get("date", "")
+        time_str = pending.get("time", "09:00")
+        duration = int(pending.get("duration_minutes", 60))
+        desc     = pending.get("description", "") or ""
+        location = pending.get("location", "") or ""
+
+        start_dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        end_dt   = start_dt + timedelta(minutes=duration)
+
+        uid = calendar_client.add_event(
+            title=title,
+            start_dt=start_dt,
+            end_dt=end_dt,
+            description=desc,
+            location=location,
+        )
+        reply_fn(
+            f"Calendar event added:\n"
+            f"  {title}\n"
+            f"  {date_str} {time_str}  ({duration} min)\n"
+            f"Event UID: {uid}"
+        )
+    except Exception as e:
+        reply_fn(f"Failed to add calendar event: {e}")
 
 
 # ---------------------------------------------------------------------------
