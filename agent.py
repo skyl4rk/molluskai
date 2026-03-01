@@ -180,6 +180,10 @@ def handle_message(text: str, reply_fn) -> None:
 
     if lower.startswith("recall:"):
         body = text[7:].strip()
+        # "recall: todo all" shows complete history; "recall: todo" shows only open items
+        show_all = body.lower().endswith(" all")
+        if show_all:
+            body = body[:-4].strip()
         if "|" in body:
             project, query = body.split("|", 1)
             project = project.strip()
@@ -192,6 +196,9 @@ def handle_message(text: str, reply_fn) -> None:
             return
         import memory
         notes = memory.get_notes(project, query=query)
+        # For the todo project, show only open [ ] items unless 'all' is requested
+        if project.lower() == "todo" and not show_all:
+            notes = [n for n in notes if n["content"].strip().startswith("[ ]")]
         reply_fn(_format_notes(project, notes, query))
         return
 
@@ -570,7 +577,8 @@ def _help_text() -> str:
         notes               List all note projects with counts
         note: <project> | <idea>  Save an idea to a project
         note: <idea>        Save an idea to 'general' project
-        recall: <project>   Retrieve all notes for a project
+        recall: <project>   Retrieve notes for a project (todo: open items only)
+        recall: todo all    Show full todo history including completed items
         recall: <project> | <theme>  Search notes by theme
         search: <query>     Search your memory for a topic
         ingest: <url>       Fetch and store a web page

@@ -28,12 +28,11 @@ Confirm briefly: "Marked as done."
 
 When the user asks "what's on my to-do list?", "show my todos", or "any todos?":
 
-Tell the user: "Use `recall: todo` to see your list."
-
-Or call `memory.get_notes("todo")` and display only lines starting with `[ ]`.
+Tell the user: "Use `recall: todo` to see your open items."
 
 ## Notes
 
 - Items starting with `[ ]` are open; `[x]` are done.
+- `recall: todo` shows only open `[ ]` items.
+- `recall: todo all` shows the full history including completed items.
 - The daily reminder task shows only open `[ ]` items.
-- Users can say `recall: todo` at any time to see the full list.
