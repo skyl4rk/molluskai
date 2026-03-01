@@ -6,6 +6,7 @@
 import threading
 import requests
 import config
+from notify import send
 
 # The question sent to all three panel models each morning
 DAILY_QUESTION = "What is one practical thing a person can do today to think more clearly and make better decisions?"
@@ -53,7 +54,7 @@ def run():
 
     if synthesis:
         message = f"Daily insight:\n\n{synthesis}"
-        _send(message)
+        send(message)
 
 
 def _ask(model: str, prompt: str) -> str:
@@ -79,11 +80,3 @@ def _ask(model: str, prompt: str) -> str:
         return ""
 
 
-def _send(text: str) -> None:
-    """Send a Telegram message."""
-    if config.TELEGRAM_TOKEN and config.TELEGRAM_CHAT_ID:
-        requests.post(
-            f"https://api.telegram.org/bot{config.TELEGRAM_TOKEN}/sendMessage",
-            json={"chat_id": config.TELEGRAM_CHAT_ID, "text": text[:4000]},
-            timeout=10,
-        )

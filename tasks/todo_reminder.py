@@ -3,9 +3,8 @@
 # ENABLED: false
 # DESCRIPTION: Sends open to-do items to Telegram each morning
 
-import requests
-import config
 import memory
+from notify import send
 
 
 def run():
@@ -25,13 +24,4 @@ def run():
     for item in open_items:
         lines.append(f"  {item}")
 
-    _send("\n".join(lines))
-
-
-def _send(text: str) -> None:
-    if config.TELEGRAM_TOKEN and config.TELEGRAM_CHAT_ID:
-        requests.post(
-            f"https://api.telegram.org/bot{config.TELEGRAM_TOKEN}/sendMessage",
-            json={"chat_id": config.TELEGRAM_CHAT_ID, "text": text[:4000]},
-            timeout=10,
-        )
+    send("\n".join(lines))

@@ -5,6 +5,7 @@
 
 import requests
 import config
+from notify import send
 
 # Use a different model from the main agent — cheap and fast for short tasks
 TASK_MODEL = "anthropic/claude-3-5-haiku"
@@ -13,7 +14,7 @@ TASK_MODEL = "anthropic/claude-3-5-haiku"
 def run():
     reply = _ask("Give me a single stoic quote and a one-sentence reflection on how it applies to daily life. Keep it under 60 words total.")
     if reply:
-        _send(f"Daily thought:\n\n{reply}")
+        send(f"Daily thought:\n\n{reply}")
 
 
 def _ask(prompt: str) -> str:
@@ -39,11 +40,3 @@ def _ask(prompt: str) -> str:
         return ""
 
 
-def _send(text: str) -> None:
-    """Send a Telegram message."""
-    if config.TELEGRAM_TOKEN and config.TELEGRAM_CHAT_ID:
-        requests.post(
-            f"https://api.telegram.org/bot{config.TELEGRAM_TOKEN}/sendMessage",
-            json={"chat_id": config.TELEGRAM_CHAT_ID, "text": text},
-            timeout=10,
-        )

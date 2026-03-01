@@ -5,6 +5,7 @@
 
 import requests
 import config
+from notify import send
 
 # Set your location in .env as WEATHER_LOCATION (city name or lat,lon).
 # Example: WEATHER_LOCATION=South Haven, Michigan USA
@@ -34,7 +35,7 @@ WMO_CODES = {
 def run():
     lat, lon, location_name = _resolve_location()
     if lat is None:
-        _send("Weather unavailable: could not resolve location.")
+        send("Weather unavailable: could not resolve location.")
         return
 
     try:
@@ -66,9 +67,9 @@ def run():
             f"Wind: {wind} km/h\n"
             f"Precipitation: {precip} mm"
         )
-        _send(message)
+        send(message)
     except Exception as e:
-        _send(f"Weather unavailable: {e}")
+        send(f"Weather unavailable: {e}")
 
 
 def _resolve_location():
@@ -105,10 +106,3 @@ def _resolve_location():
     return DEFAULT_LATITUDE, DEFAULT_LONGITUDE, f"{DEFAULT_LATITUDE}, {DEFAULT_LONGITUDE}"
 
 
-def _send(text):
-    if config.TELEGRAM_TOKEN and config.TELEGRAM_CHAT_ID:
-        requests.post(
-            f"https://api.telegram.org/bot{config.TELEGRAM_TOKEN}/sendMessage",
-            json={"chat_id": config.TELEGRAM_CHAT_ID, "text": text[:4000]},
-            timeout=10,
-        )

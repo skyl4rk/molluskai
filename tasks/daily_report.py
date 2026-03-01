@@ -20,7 +20,6 @@ This task uses NO AI credits — it reads the log file and sends
 a pre-formatted message directly via the Telegram Bot API.
 """
 
-import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -28,6 +27,8 @@ from pathlib import Path
 # Add the project root to sys.path so we can import config and other modules
 PROJECT_DIR = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
+
+from notify import send
 
 
 def run():
@@ -78,38 +79,7 @@ def run():
         f"• Total log entries: {len(lines)}"
     )
 
-    _send(message)
-
-
-def _send(text: str) -> None:
-    """
-    Send a message via the Telegram Bot API.
-    Uses only the 'requests' library — no python-telegram-bot needed here.
-    """
-    import requests
-    from dotenv import load_dotenv
-
-    load_dotenv(PROJECT_DIR / ".env")
-    token   = os.getenv("TELEGRAM_TOKEN", "")
-    chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
-
-    if not token or not chat_id:
-        print(
-            f"[daily_report] TELEGRAM_TOKEN or TELEGRAM_CHAT_ID not set in .env.\n"
-            f"               Message would have been: {text}"
-        )
-        return
-
-    try:
-        resp = requests.post(
-            f"https://api.telegram.org/bot{token}/sendMessage",
-            json={"chat_id": chat_id, "text": text},
-            timeout=10,
-        )
-        if not resp.ok:
-            print(f"[daily_report] Telegram API error: {resp.text}")
-    except Exception as e:
-        print(f"[daily_report] Failed to send message: {e}")
+    send(message)
 
 
 if __name__ == "__main__":

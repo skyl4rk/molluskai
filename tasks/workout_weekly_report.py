@@ -5,11 +5,10 @@
 
 import sqlite3
 import re
-import requests
-import config
 from datetime import datetime, timedelta
 from pathlib import Path
 from collections import defaultdict
+from notify import send
 
 DB_PATH = Path(__file__).parent.parent / "data" / "memory.db"
 
@@ -87,13 +86,4 @@ def run():
         summary_parts = [f"{t}: {n}" for t, n in sorted(type_counts.items())]
         lines.append("Session types: " + ", ".join(summary_parts))
 
-    _send("\n".join(lines))
-
-
-def _send(text):
-    if config.TELEGRAM_TOKEN and config.TELEGRAM_CHAT_ID:
-        requests.post(
-            f"https://api.telegram.org/bot{config.TELEGRAM_TOKEN}/sendMessage",
-            json={"chat_id": config.TELEGRAM_CHAT_ID, "text": text[:4000]},
-            timeout=10,
-        )
+    send("\n".join(lines))

@@ -4,8 +4,7 @@
 # DESCRIPTION: Sends a Telegram alert if the main disk is over 75% full
 
 import shutil
-import requests
-import config
+from notify import send
 
 MOUNT_POINT    = "/"
 ALERT_THRESHOLD = 75  # percent
@@ -29,13 +28,4 @@ def run():
         f"Total: {total_gb:.1f} GB\n"
         f"Mount: {MOUNT_POINT}"
     )
-    _send(message)
-
-
-def _send(text):
-    if config.TELEGRAM_TOKEN and config.TELEGRAM_CHAT_ID:
-        requests.post(
-            f"https://api.telegram.org/bot{config.TELEGRAM_TOKEN}/sendMessage",
-            json={"chat_id": config.TELEGRAM_CHAT_ID, "text": text},
-            timeout=10,
-        )
+    send(message)
