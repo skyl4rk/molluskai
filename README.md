@@ -22,6 +22,7 @@ Inspired by [PicoClaw](https://github.com/sipeed/picoclaw).
 - **Diet logging** — speak meals into Telegram, the agent estimates calories and sends a morning summary of the previous day
 - **Expense tracking** — log purchases by voice or text with automatic categorisation; monthly spending report by category delivered to Telegram
 - **Workout log** — log exercise sessions by voice or text; weekly training summary delivered every Monday morning
+- **To-Do list** — add and complete tasks by voice or text; open items delivered to Telegram each morning
 - **Email gateway** — receive emails via IMAP, auto-reply with the LLM, and forward to a human when needed
 - **Agent orchestration** — route a question through specialist subagents in parallel, then synthesise their outputs into one response
 - **Low cost** — three-layer context (identity + relevant memories + recent turns) keeps each call to ~3,000 tokens
@@ -213,6 +214,7 @@ You can also write or edit skill files manually in the `skills/` directory with 
 | `diet_log.md` | Log meals by voice or text; agent estimates calories and tracks daily totals |
 | `expense_tracker.md` | Log purchases by voice or text with category; monthly spending report by category |
 | `workout_log.md` | Log exercise sessions by voice or text; weekly training summary every Monday |
+| `todo.md` | Add and complete to-do items by voice or text; open items shown in daily reminder |
 
 ---
 
@@ -330,6 +332,7 @@ The task runs immediately in the background and sends its output to Telegram. Th
 | `diet_morning_report` | every day at 07:30 | Sends yesterday's food log and calorie total |
 | `expense_monthly_report` | 1st of each month | Sends last month's spending grouped by category |
 | `workout_weekly_report` | every Monday | Sends last week's training sessions and totals |
+| `todo_reminder` | every day at 08:00 | Sends open to-do items to Telegram each morning |
 | `daily_quote` | every day at 07:00 | Generates a stoic quote and reflection using a specified model |
 | `ensemble_insight` | every day at 08:00 | Three models answer a question in parallel; a fourth synthesises the best answer |
 
@@ -706,6 +709,7 @@ molluskai/
 │   ├── diet_log.md
 │   ├── expense_tracker.md
 │   ├── workout_log.md
+│   ├── todo.md
 │   └── email_handler.md
 ├── tasks/             # Local automation scripts (Python, edit freely)
 │   ├── daily_report.py          # Daily AI usage summary
@@ -715,6 +719,7 @@ molluskai/
 │   ├── workout_weekly_report.py  # Weekly training summary
 │   ├── daily_quote.py           # Daily stoic quote (single model)
 │   ├── ensemble_insight.py      # Daily insight (multi-model ensemble)
+│   ├── todo_reminder.py         # Daily to-do list reminder
 │   ├── df_report.py             # On-demand: full df -h output
 │   └── weather_report.py        # On-demand: weather via open-meteo.com
 ├── data/              # Database and logs (auto-created, not committed)
@@ -1025,6 +1030,55 @@ recall: workouts
 ```
 
 Retrieves logged sessions. Ask the agent to identify patterns, flag rest days, or suggest what to focus on next.
+
+---
+
+## To-Do List
+
+Track tasks by speaking or typing naturally. Open items are sent to Telegram each morning.
+
+### Adding and completing tasks
+
+```
+todo: pick up dry cleaning
+remind me to call the accountant
+add to do: renew car insurance
+```
+
+The agent saves each item and confirms:
+
+```
+agent> Added to your to-do list.
+```
+
+Mark items done:
+
+```
+done: pick up dry cleaning
+finished calling the accountant
+```
+
+### Viewing your list
+
+```
+recall: todo
+```
+
+### Enabling the morning reminder
+
+```
+enable task: todo_reminder
+```
+
+At 08:00 each day you receive a message listing all open items:
+
+```
+To-Do (2 open):
+  [ ] renew car insurance
+  [ ] call the accountant
+```
+
+No message is sent if there are no open items.
 
 ---
 
