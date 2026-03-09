@@ -120,6 +120,9 @@ The onboarding setup asks for this ID so that only you can send messages to your
 | `disable task: <name>` | Disable a task, reload scheduler | None |
 | `model` | Show current model | None |
 | `model: <model-id>` | Switch model, saved to .env | None |
+| `todo: <item>` | Add an item to your to-do list | None |
+| `done: <item>` | Mark a to-do item as done | None |
+| `remove: <item>` | Remove a to-do item from the list | None |
 | `notes` | List all note projects with counts | None |
 | `note: <project> \| <idea>` | Save an idea to a project | None |
 | `note: <idea>` | Save an idea to 'general' | None |
@@ -332,7 +335,7 @@ The task runs immediately in the background and sends its output to Telegram. Th
 | `diet_morning_report` | every day at 07:30 | Sends yesterday's food log and calorie total |
 | `expense_monthly_report` | 1st of each month | Sends last month's spending grouped by category |
 | `workout_weekly_report` | every Monday | Sends last week's training sessions and totals |
-| `todo_reminder` | every day at 08:00 | Sends open to-do items to Telegram each morning |
+| `todo_reminder` | every day at 05:00 | Sends open to-do items to Telegram each morning; removes done items older than 24h |
 | `daily_quote` | every day at 07:00 | Generates a stoic quote and reflection using a specified model |
 | `ensemble_insight` | every day at 08:00 | Three models answer a question in parallel; a fourth synthesises the best answer |
 
@@ -1035,28 +1038,19 @@ Retrieves logged sessions. Ask the agent to identify patterns, flag rest days, o
 
 ## To-Do List
 
-Track tasks by speaking or typing naturally. Open items are sent to Telegram each morning.
+Track tasks using direct commands or natural language. Open items are sent to Telegram each morning.
 
-### Adding and completing tasks
+### Commands
 
-```
-todo: pick up dry cleaning
-remind me to call the accountant
-add to do: renew car insurance
-```
+| Command | What it does |
+|---------|-------------|
+| `todo: pick up dry cleaning` | Add an item instantly (no AI cost) |
+| `done: dry cleaning` | Mark matching item(s) as done |
+| `remove: dry cleaning` | Delete item(s) from the list entirely |
+| `recall: todo` | Show all open items |
+| `recall: todo all` | Show full history including done items |
 
-The agent saves each item and confirms:
-
-```
-agent> Added to your to-do list.
-```
-
-Mark items done:
-
-```
-done: pick up dry cleaning
-finished calling the accountant
-```
+You can also use natural language — *"remind me to call the accountant"*, *"I finished the laundry"* — and the agent will add or mark items for you.
 
 ### Viewing your list
 
@@ -1070,7 +1064,7 @@ recall: todo
 enable task: todo_reminder
 ```
 
-At 08:00 each day you receive a message listing all open items:
+At 05:00 each day you receive a message listing all open items:
 
 ```
 To-Do (2 open):
@@ -1078,7 +1072,7 @@ To-Do (2 open):
   [ ] call the accountant
 ```
 
-No message is sent if there are no open items.
+Done items are automatically removed after 24 hours. No message is sent if there are nothing open.
 
 ---
 
