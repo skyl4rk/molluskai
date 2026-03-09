@@ -29,3 +29,6 @@ faster-whisper
 beautifulsoup4
 pymupdf
 
+# Web search (used by websearch.py and web search tasks)
+ddgs
+
