@@ -40,10 +40,11 @@ The agent's scheduler reads this header, parses the schedule, and runs the task 
 
 ## Writing a New Task
 
-1. Copy `daily_report.py` as a template
+1. Copy any existing task as a template
 2. Update the four metadata header lines
 3. Write your logic in the `run()` function
-4. Keep the `sys.path.insert` line so you can import project modules (e.g. `config`)
+
+The project root is automatically on `sys.path` — you can `import config`, `import memory`, and `from notify import send` without any path setup.
 
 Tasks run in a background thread. Errors are printed to the console but do not crash the agent.
 

@@ -8,7 +8,6 @@ from notify import send
 
 
 def run():
-    memory.init()
     notes = memory.get_notes("todo")
 
     open_items = [

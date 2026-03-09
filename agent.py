@@ -11,6 +11,7 @@
 import re
 import sys
 import textwrap
+import threading
 from pathlib import Path
 
 PROJECT_DIR  = Path(__file__).parent
@@ -18,7 +19,10 @@ SOCKET_PATH  = "/tmp/molluskai.sock"
 
 # Tracks a pending skill or task file write awaiting user confirmation.
 # Set when the LLM response contains a [SAVE_SKILL:...] or [SAVE_TASK:...] block.
+# Protected by a lock because handle_message() is called from multiple threads
+# (terminal, Telegram, email) simultaneously.
 _pending_write: dict = {}
+_pending_write_lock  = threading.Lock()
 
 
 # ---------------------------------------------------------------------------
@@ -102,22 +106,27 @@ def handle_message(text: str, reply_fn) -> None:
     # --- Pending file-write confirmation ---
     # When the LLM has proposed saving a skill or task file, the next message
     # from the user is treated as confirmation ("yes") or cancellation ("no").
-    if _pending_write:
+    with _pending_write_lock:
+        pending = dict(_pending_write)
+    if pending:
         if lower in ("yes", "y", "confirm"):
-            ftype   = _pending_write.get("type", "file")
-            path    = Path(_pending_write["path"])
-            content = _pending_write["content"]
-            _pending_write = {}
+            with _pending_write_lock:
+                ftype   = _pending_write.get("type", "file")
+                path    = Path(_pending_write["path"])
+                content = _pending_write["content"]
+                _pending_write.clear()
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content)
             reply_fn(f"Saved {ftype}: {path.name}\nPath: {path}")
         elif lower in ("no", "n", "cancel"):
-            ftype = _pending_write.get("type", "file")
-            _pending_write = {}
+            with _pending_write_lock:
+                ftype = _pending_write.get("type", "file")
+                _pending_write.clear()
             reply_fn(f"Cancelled — {ftype} was not saved.")
         else:
             # Not a yes/no — clear the pending write and handle normally
-            _pending_write = {}
+            with _pending_write_lock:
+                _pending_write.clear()
             reply_fn("Pending save cancelled (new message received). Send your message again if needed.")
         return
 
@@ -304,7 +313,8 @@ def handle_message(text: str, reply_fn) -> None:
     # Check if the LLM wants to write a skill or task file
     cleaned_response, pending = _extract_save_directive(response)
     if pending:
-        _pending_write.update(pending)
+        with _pending_write_lock:
+            _pending_write.update(pending)
         reply_fn(cleaned_response)
         return
 

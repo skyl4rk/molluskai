@@ -36,12 +36,12 @@ def run():
     log_path = PROJECT_DIR / "data" / "usage.log"
 
     if not log_path.exists():
-        _send("MolluskAI: No usage data recorded yet.")
+        send("MolluskAI: No usage data recorded yet.")
         return
 
     lines = [l.strip() for l in log_path.read_text().splitlines() if l.strip()]
     if not lines:
-        _send("MolluskAI: Usage log is empty.")
+        send("MolluskAI: Usage log is empty.")
         return
 
     today       = str(date.today())

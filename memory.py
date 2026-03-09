@@ -86,6 +86,11 @@ def _connect() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
 
+    # WAL mode allows concurrent reads and writes from multiple threads
+    # without blocking, which matters because Telegram, email, and the
+    # scheduler all call memory functions simultaneously.
+    conn.execute("PRAGMA journal_mode=WAL")
+
     if SQLITE_VEC_AVAILABLE:
         conn.enable_load_extension(True)
         _sqlite_vec.load(conn)
@@ -142,6 +147,14 @@ def init() -> None:
             role      TEXT    NOT NULL,
             content   TEXT    NOT NULL,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Prune conversation table — keep only the most recent 1000 turns.
+    # get_recent() only reads the last 15, so older rows are never used.
+    conn.execute("""
+        DELETE FROM conversation WHERE id NOT IN (
+            SELECT id FROM conversation ORDER BY id DESC LIMIT 1000
         )
     """)
 

@@ -158,6 +158,7 @@ def _run_bot(token: str, message_handler) -> None:
         # Use the internal ingest_pdf command so handle_message can route it
         replies = []
         message_handler(f"ingest_pdf:{save_path}", lambda r: replies.append(r))
+        save_path.unlink(missing_ok=True)  # clean up after ingestion
 
         for reply in replies:
             await update.message.reply_text(reply)
