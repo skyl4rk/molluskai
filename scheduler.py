@@ -18,6 +18,7 @@
 #   every N seconds       (useful for testing)
 
 import importlib.util
+import json
 import threading
 import time
 from pathlib import Path
@@ -29,7 +30,24 @@ except ImportError:
     schedule = None
     SCHEDULE_AVAILABLE = False
 
-TASKS_DIR = Path(__file__).parent / "tasks"
+TASKS_DIR  = Path(__file__).parent / "tasks"
+STATE_FILE = Path(__file__).parent / "data" / "task_state.json"
+
+
+def _load_state() -> dict:
+    """Load the persisted enabled/disabled state for all tasks."""
+    if STATE_FILE.exists():
+        try:
+            return json.loads(STATE_FILE.read_text())
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_state(state: dict) -> None:
+    """Persist the task enabled/disabled state."""
+    STATE_FILE.parent.mkdir(exist_ok=True)
+    STATE_FILE.write_text(json.dumps(state, indent=2))
 
 
 def discover_tasks() -> list:
@@ -37,7 +55,12 @@ def discover_tasks() -> list:
     Scan tasks/*.py and parse their metadata header.
     Returns a list of dicts, each with keys:
         name, schedule, enabled, description, path
+
+    The file header's ENABLED value is the default. Any entry in
+    data/task_state.json overrides it, so enabled state persists
+    independently of git operations.
     """
+    state = _load_state()
     tasks = []
     for path in sorted(TASKS_DIR.glob("*.py")):
         if path.name.startswith("_"):
@@ -71,8 +94,20 @@ def discover_tasks() -> list:
         except Exception as e:
             print(f"[scheduler] Could not read {path.name}: {e}")
 
+        # JSON state overrides the file header
+        stem = path.stem
+        if stem in state:
+            meta["enabled"] = state[stem]
+
         tasks.append(meta)
     return tasks
+
+
+def set_task_enabled(stem: str, enabled: bool) -> None:
+    """Persist the enabled state for a task by file stem."""
+    state = _load_state()
+    state[stem] = enabled
+    _save_state(state)
 
 
 def _run_task(path: Path) -> None:

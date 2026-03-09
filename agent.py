@@ -494,7 +494,7 @@ def _run_task_now(name: str) -> str:
 
 
 def _set_task_enabled(name: str, enabled: bool) -> str:
-    """Edit a task file's ENABLED header and reload the scheduler."""
+    """Persist a task's enabled state and reload the scheduler."""
     import scheduler
     tasks = scheduler.discover_tasks()
 
@@ -510,23 +510,12 @@ def _set_task_enabled(name: str, enabled: bool) -> str:
         available = ", ".join(Path(t["path"]).stem for t in tasks) or "none"
         return f"Task '{name}' not found.\nAvailable tasks: {available}"
 
-    path = Path(match["path"])
-    content = path.read_text()
-    new_content = re.sub(
-        r'^(#\s*ENABLED:\s*).*$',
-        lambda m: m.group(1) + ("true" if enabled else "false"),
-        content,
-        flags=re.MULTILINE | re.IGNORECASE,
-    )
-
-    if new_content == content:
-        return f"Task '{name}' has no ENABLED header — cannot modify."
-
-    path.write_text(new_content)
+    stem = Path(match["path"]).stem
+    scheduler.set_task_enabled(stem, enabled)
     scheduler.reload()
 
     action = "enabled" if enabled else "disabled"
-    return f"Task '{Path(match['path']).stem}' {action} and scheduler reloaded."
+    return f"Task '{stem}' {action} and scheduler reloaded."
 
 
 def _format_memories(results: list) -> str:
