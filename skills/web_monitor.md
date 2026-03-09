@@ -22,7 +22,7 @@ Use for: general news, blogs, podcasts. Edit the `FEEDS` list to match the topic
 ```python
 # TASK: RSS Monitor — {keyword}
 # SCHEDULE: every day at 08:00
-# ENABLED: false
+# ENABLED: true
 # DESCRIPTION: Daily digest of RSS feed items matching '{keyword}'
 
 import requests
@@ -81,7 +81,7 @@ Use for: tech topics, programming, startups, science. Free Algolia API, no key n
 ```python
 # TASK: HN Monitor — {keyword}
 # SCHEDULE: every day at 08:00
-# ENABLED: false
+# ENABLED: true
 # DESCRIPTION: Daily Hacker News stories matching '{keyword}'
 
 import requests
@@ -139,7 +139,7 @@ Use for: community discussions on a specific subreddit. No API key needed for pu
 ```python
 # TASK: Reddit Monitor — r/{subreddit} — {keyword}
 # SCHEDULE: every day at 08:00
-# ENABLED: false
+# ENABLED: true
 # DESCRIPTION: Daily new posts in r/{subreddit} matching '{keyword}'
 
 import requests
@@ -200,7 +200,7 @@ Use for: a page that doesn't have an RSS feed — job boards, local council noti
 ```python
 # TASK: Page Watch — {keyword} at {url}
 # SCHEDULE: every day at 08:00
-# ENABLED: false
+# ENABLED: true
 # DESCRIPTION: Alert when '{keyword}' appears on {url}
 
 import requests
@@ -251,6 +251,6 @@ def _send(text):
 ## After generating the task
 
 Remind the user to:
-1. Review the generated code before enabling
-2. Enable it: `enable task: <filename>`
+1. Review the generated code — it is enabled by default and will run at the scheduled time
+2. To disable it: `disable task: <filename>`
 3. The first report arrives at the scheduled time
