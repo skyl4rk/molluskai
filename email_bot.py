@@ -177,7 +177,7 @@ def _extract_forward_directive(response: str) -> tuple:
 # ---------------------------------------------------------------------------
 
 def _send_email(to: str, subject: str, body: str) -> None:
-    """Send a plain-text email via SMTP (STARTTLS on port 587)."""
+    """Send a plain-text email via SMTP. Uses SMTP_SSL for port 465, STARTTLS otherwise."""
     msg = MIMEMultipart()
     msg["From"]    = config.EMAIL_SMTP_USER
     msg["To"]      = to
@@ -185,11 +185,17 @@ def _send_email(to: str, subject: str, body: str) -> None:
     msg.attach(MIMEText(body, "plain"))
 
     try:
-        with smtplib.SMTP(config.EMAIL_SMTP_HOST, config.EMAIL_SMTP_PORT) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(config.EMAIL_SMTP_USER, config.EMAIL_SMTP_PASSWORD)
-            server.send_message(msg)
+        if config.EMAIL_SMTP_PORT == 465:
+            import ssl
+            with smtplib.SMTP_SSL(config.EMAIL_SMTP_HOST, config.EMAIL_SMTP_PORT, context=ssl.create_default_context()) as server:
+                server.login(config.EMAIL_SMTP_USER, config.EMAIL_SMTP_PASSWORD)
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(config.EMAIL_SMTP_HOST, config.EMAIL_SMTP_PORT) as server:
+                server.ehlo()
+                server.starttls()
+                server.login(config.EMAIL_SMTP_USER, config.EMAIL_SMTP_PASSWORD)
+                server.send_message(msg)
     except Exception as e:
         print(f"[email] SMTP error sending to {to}: {e}")
 
