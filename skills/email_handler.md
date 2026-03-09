@@ -44,11 +44,9 @@ Customer inquiry about small business pricing from Jane Smith <jane@example.com>
 
 ### Default forwarding address
 
-Set this to your preferred contact. Edit the address below:
-
-**Default forward: `yourname@yourcompany.com`**
-
-Update this to match your actual forwarding address before enabling the email gateway.
+The forwarding address is injected into each email context as `[Forward address: ...]`.
+Use whatever address appears there. If no address is shown, do not forward unless the
+user has specified one in the conversation.
 
 ## Example — customer inquiry
 

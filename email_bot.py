@@ -105,8 +105,12 @@ def _handle_email(msg, message_handler) -> None:
 
     # Build context string for the agent
     from_display = f"{sender_name} <{sender_addr}>" if sender_name else sender_addr
+    forward_hint = (
+        f"\n[Forward address: {config.EMAIL_FORWARD_ADDRESS}]"
+        if config.EMAIL_FORWARD_ADDRESS else ""
+    )
     context = (
-        f"[Email received]\n"
+        f"[Email received]{forward_hint}\n"
         f"From: {from_display}\n"
         f"Subject: {subject}\n\n"
         f"{body}"

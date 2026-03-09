@@ -48,6 +48,9 @@ EMAIL_POLL_INTERVAL = int(os.getenv("EMAIL_POLL_INTERVAL", "60"))
 _raw_email_allowed  = os.getenv("EMAIL_ALLOWED_FROM", "")
 EMAIL_ALLOWED_FROM  = [e.strip() for e in _raw_email_allowed.split(",") if e.strip()]
 
+# Address to forward emails to the human owner (blank = no auto-forwarding)
+EMAIL_FORWARD_ADDRESS = os.getenv("EMAIL_FORWARD_ADDRESS", "")
+
 # --- Popular models shown in the onboarding dropdown ---
 POPULAR_MODELS = [
     "google/gemini-2.0-flash-001",
