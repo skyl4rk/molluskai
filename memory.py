@@ -427,6 +427,80 @@ def get_note_projects() -> list:
 
 
 # ---------------------------------------------------------------------------
+# Note mutation helpers
+# ---------------------------------------------------------------------------
+
+def find_notes(text: str, source: str) -> list:
+    """
+    Find notes in a project whose content contains text (case-insensitive).
+    Returns dicts with keys: id, content, timestamp.
+    """
+    conn = _connect()
+    rows = conn.execute(
+        "SELECT id, content, timestamp FROM memories "
+        "WHERE role='note' AND lower(source)=lower(?) "
+        "AND instr(lower(content), lower(?)) > 0",
+        (source, text),
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def delete_notes(ids: list) -> None:
+    """
+    Delete notes by ID, keeping FTS and vec indexes in sync.
+    """
+    if not ids:
+        return
+    conn = _connect()
+    for row_id in ids:
+        row = conn.execute(
+            "SELECT content FROM memories WHERE id=?", (row_id,)
+        ).fetchone()
+        if not row:
+            continue
+        # Remove from FTS index
+        try:
+            conn.execute(
+                "INSERT INTO memories_fts(memories_fts, rowid, content) "
+                "VALUES('delete', ?, ?)",
+                (row_id, row["content"]),
+            )
+        except Exception:
+            pass
+        # Remove from vec index
+        if SQLITE_VEC_AVAILABLE:
+            try:
+                conn.execute(
+                    "DELETE FROM memories_vec WHERE rowid=?", (row_id,)
+                )
+            except Exception:
+                pass
+        conn.execute("DELETE FROM memories WHERE id=?", (row_id,))
+    conn.commit()
+    conn.close()
+
+
+def cleanup_done_notes(source: str, older_than_hours: int = 24) -> int:
+    """
+    Delete completed notes (content starts with '[x]') older than the
+    given number of hours. Returns the number of rows deleted.
+    """
+    conn = _connect()
+    rows = conn.execute(
+        "SELECT id, content FROM memories "
+        "WHERE role='note' AND lower(source)=lower(?) "
+        "AND content LIKE '[x]%' "
+        "AND timestamp < datetime('now', ?)",
+        (source, f"-{older_than_hours} hours"),
+    ).fetchall()
+    conn.close()
+
+    delete_notes([r["id"] for r in rows])
+    return len(rows)
+
+
+# ---------------------------------------------------------------------------
 # Document ingestion
 # ---------------------------------------------------------------------------
 

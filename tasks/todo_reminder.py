@@ -1,15 +1,18 @@
 # TASK: To-Do Reminder
-# SCHEDULE: every day at 08:00
+# SCHEDULE: every day at 05:00
 # ENABLED: false
-# DESCRIPTION: Sends open to-do items to Telegram each morning
+# DESCRIPTION: Sends open to-do items to Telegram each morning; removes done items older than 1 day
 
 import memory
 from notify import send
 
 
 def run():
-    notes = memory.get_notes("todo")
+    # Remove done items completed more than 24 hours ago
+    memory.cleanup_done_notes("todo", older_than_hours=24)
 
+    # Report remaining open items
+    notes = memory.get_notes("todo")
     open_items = [
         n["content"].strip()
         for n in notes

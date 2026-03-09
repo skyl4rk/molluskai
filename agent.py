@@ -211,6 +211,47 @@ def handle_message(text: str, reply_fn) -> None:
         reply_fn(_format_notes(project, notes, query))
         return
 
+    if lower.startswith("todo:"):
+        item = text[5:].strip()
+        if not item:
+            reply_fn("Usage: todo: <item>")
+            return
+        memory.store_memory(f"[ ] {item}", role="note", source="todo")
+        reply_fn(f"Added to to-do list: {item}")
+        return
+
+    if lower.startswith("done:"):
+        item = text[5:].strip()
+        if not item:
+            reply_fn("Usage: done: <item>")
+            return
+        matches = memory.find_notes(item, "todo")
+        open_matches = [n for n in matches if n["content"].strip().startswith("[ ]")]
+        if not open_matches:
+            reply_fn(f"No open to-do item found matching: '{item}'")
+            return
+        memory.delete_notes([n["id"] for n in open_matches])
+        for n in open_matches:
+            body = n["content"].strip()[4:]  # strip "[ ] "
+            memory.store_memory(f"[x] {body}", role="note", source="todo")
+        items = ", ".join(n["content"].strip()[4:] for n in open_matches)
+        reply_fn(f"Marked done: {items}")
+        return
+
+    if lower.startswith("remove:"):
+        item = text[7:].strip()
+        if not item:
+            reply_fn("Usage: remove: <item>")
+            return
+        matches = memory.find_notes(item, "todo")
+        if not matches:
+            reply_fn(f"No to-do item found matching: '{item}'")
+            return
+        memory.delete_notes([n["id"] for n in matches])
+        items = ", ".join(n["content"].strip() for n in matches)
+        reply_fn(f"Removed from to-do list: {items}")
+        return
+
     if lower.startswith("ensemble:"):
         question = text[9:].strip()
         if not question:
@@ -573,11 +614,15 @@ def _help_text() -> str:
         disable task: <name> Disable a task and reload the scheduler
         model               Show current model
         model: <model-id>   Switch model instantly (saved to .env)
+        todo: <item>        Add an item to your to-do list
+        done: <item>        Mark a to-do item as done
+        remove: <item>      Remove a to-do item from the list
+        recall: todo        Show open to-do items
+        recall: todo all    Show full to-do history including completed items
         notes               List all note projects with counts
         note: <project> | <idea>  Save an idea to a project
         note: <idea>        Save an idea to 'general' project
-        recall: <project>   Retrieve notes for a project (todo: open items only)
-        recall: todo all    Show full todo history including completed items
+        recall: <project>   Retrieve notes for a project
         recall: <project> | <theme>  Search notes by theme
         search: <query>     Search your memory for a topic
         ingest: <url>       Fetch and store a web page
