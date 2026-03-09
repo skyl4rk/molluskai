@@ -1,5 +1,5 @@
 # TASK: Diet Morning Report
-# SCHEDULE: every day at 07:30
+# SCHEDULE: every day at 05:24
 # ENABLED: false
 # DESCRIPTION: Sends yesterday's food log and calorie total to Telegram
 

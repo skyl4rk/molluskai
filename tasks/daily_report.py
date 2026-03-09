@@ -1,5 +1,5 @@
 # TASK: Daily Usage Report
-# SCHEDULE: every day at 08:00
+# SCHEDULE: every day at 05:06
 # ENABLED: false
 # DESCRIPTION: Reads the AI usage log and sends a brief daily summary to Telegram
 

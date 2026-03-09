@@ -1,5 +1,5 @@
 # TASK: Daily Quote
-# SCHEDULE: every day at 07:00
+# SCHEDULE: every day at 05:18
 # ENABLED: false
 # DESCRIPTION: Generates a daily stoic quote and reflection using a specified model, sends to Telegram
 

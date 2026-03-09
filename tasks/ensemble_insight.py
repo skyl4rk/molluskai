@@ -1,5 +1,5 @@
 # TASK: Ensemble Daily Insight
-# SCHEDULE: every day at 08:00
+# SCHEDULE: every day at 05:42
 # ENABLED: false
 # DESCRIPTION: Three models answer the same question in parallel, a fourth synthesises their answers into one refined response, sent to Telegram
 

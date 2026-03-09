@@ -1,5 +1,5 @@
 # TASK: Disk Free Report
-# SCHEDULE: every day at 08:00
+# SCHEDULE: every day at 05:12
 # ENABLED: false
 # DESCRIPTION: Sends a Telegram alert if the main disk is over 75% full
 

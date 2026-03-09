@@ -1,5 +1,5 @@
 # TASK: Expense Monthly Report
-# SCHEDULE: every day at 08:00
+# SCHEDULE: every day at 05:36
 # ENABLED: false
 # DESCRIPTION: On the 1st of each month, sends last month's spending grouped by category to Telegram
 

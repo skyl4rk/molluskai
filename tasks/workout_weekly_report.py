@@ -1,5 +1,5 @@
 # TASK: Workout Weekly Report
-# SCHEDULE: every day at 08:00
+# SCHEDULE: every day at 05:30
 # ENABLED: false
 # DESCRIPTION: Every Monday, sends last week's workout summary to Telegram
 
