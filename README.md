@@ -121,8 +121,8 @@ The onboarding setup asks for this ID so that only you can send messages to your
 | `model` | Show current model | None |
 | `model: <model-id>` | Switch model, saved to .env | None |
 | `todo: <item>` | Add an item to your to-do list | None |
-| `done: <item>` | Mark a to-do item as done | None |
-| `remove: <item>` | Remove a to-do item from the list | None |
+| `done: <item or N>` | Mark a to-do item done (text or number from last recall) | None |
+| `remove: <item or N>` | Remove a to-do item (text or number from last recall) | None |
 | `notes` | List all note projects with counts | None |
 | `note: <project> \| <idea>` | Save an idea to a project | None |
 | `note: <idea>` | Save an idea to 'general' | None |
@@ -347,6 +347,21 @@ All scheduled tasks are disabled by default. Enable with `enable task: <name>`.
 |------|-------------|
 | `df_report` | Sends full `df -h` disk usage output to Telegram |
 | `weather_report` | Sends today's weather via [open-meteo.com](https://open-meteo.com) (no API key needed) |
+
+### Web search template
+
+`tasks/web_search_template.py` is a ready-made daily search task backed by DuckDuckGo (no API key required). Copy it, set `SEARCH_TERM` and `TASK_LABEL` at the top, and enable it:
+
+```bash
+cp tasks/web_search_template.py tasks/my_search.py
+# edit SEARCH_TERM and TASK_LABEL
+```
+
+```
+enable task: my_search
+```
+
+Each morning it fetches the top results, sends them to an LLM for a brief summary, and delivers the digest to Telegram. The shared `websearch.py` module can also be imported directly from any task you write.
 
 To set a location for the weather report, add `WEATHER_LOCATION` to your `.env` file:
 
@@ -702,6 +717,7 @@ molluskai/
 ├── scheduler.py       # Task discovery and scheduling
 ├── orchestrator.py    # Multi-agent orchestration (ensemble: command)
 ├── transcribe.py      # Voice message transcription (faster-whisper)
+├── websearch.py       # Shared web search utility (DuckDuckGo, no API key)
 ├── IDENTITY.md        # Agent persona / system prompt
 ├── skills/            # AI prompt templates (markdown, edit freely)
 │   ├── how_to_write_a_skill.md
@@ -724,7 +740,8 @@ molluskai/
 │   ├── ensemble_insight.py      # Daily insight (multi-model ensemble)
 │   ├── todo_reminder.py         # Daily to-do list reminder
 │   ├── df_report.py             # On-demand: full df -h output
-│   └── weather_report.py        # On-demand: weather via open-meteo.com
+│   ├── weather_report.py        # On-demand: weather via open-meteo.com
+│   └── web_search_template.py   # Template: daily DuckDuckGo search + LLM digest
 ├── data/              # Database and logs (auto-created, not committed)
 │   ├── memory.db
 │   └── usage.log
@@ -1045,9 +1062,11 @@ Track tasks using direct commands or natural language. Open items are sent to Te
 | Command | What it does |
 |---------|-------------|
 | `todo: pick up dry cleaning` | Add an item instantly (no AI cost) |
-| `done: dry cleaning` | Mark matching item(s) as done |
-| `remove: dry cleaning` | Delete item(s) from the list entirely |
-| `recall: todo` | Show all open items |
+| `done: dry cleaning` | Mark matching item(s) as done by text |
+| `done: 2` | Mark item 2 as done (from last `recall: todo`) |
+| `remove: dry cleaning` | Delete item(s) from the list by text |
+| `remove: 2` | Delete item 2 (from last `recall: todo`) |
+| `recall: todo` | Show all open items (numbered for done:/remove:) |
 | `recall: todo all` | Show full history including done items |
 
 You can also use natural language — *"remind me to call the accountant"*, *"I finished the laundry"* — and the agent will add or mark items for you.
