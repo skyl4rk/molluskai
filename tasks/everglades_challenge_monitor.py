@@ -4,7 +4,9 @@
 # DESCRIPTION: Daily digest of Everglades Challenge/WaterTribe updates
 
 import requests
+import smtplib, ssl
 import xml.etree.ElementTree as ET
+from email.mime.text import MIMEText
 import config
 from datetime import datetime, timedelta
 
@@ -40,9 +42,25 @@ def run():
 
 
 def _send(text):
-    if config.TELEGRAM_TOKEN and config.TELEGRAM_CHAT_ID:
-        requests.post(
-            f"https://api.telegram.org/bot{config.TELEGRAM_TOKEN}/sendMessage",
-            json={"chat_id": config.TELEGRAM_CHAT_ID, "text": text[:4000]},
-            timeout=10,
-        )
+    to = config.EMAIL_FORWARD_ADDRESS
+    if not to:
+        print("[everglades_monitor] EMAIL_FORWARD_ADDRESS not set — skipping email.")
+        return
+    msg = MIMEText(text)
+    msg["Subject"] = "Everglades Challenge Monitor"
+    msg["From"]    = config.EMAIL_SMTP_USER
+    msg["To"]      = to
+    try:
+        if config.EMAIL_SMTP_PORT == 465:
+            with smtplib.SMTP_SSL(config.EMAIL_SMTP_HOST, config.EMAIL_SMTP_PORT, context=ssl.create_default_context()) as s:
+                s.login(config.EMAIL_SMTP_USER, config.EMAIL_SMTP_PASSWORD)
+                s.send_message(msg)
+        else:
+            with smtplib.SMTP(config.EMAIL_SMTP_HOST, config.EMAIL_SMTP_PORT) as s:
+                s.ehlo()
+                s.starttls()
+                s.login(config.EMAIL_SMTP_USER, config.EMAIL_SMTP_PASSWORD)
+                s.send_message(msg)
+        print(f"[everglades_monitor] Email sent to {to}")
+    except Exception as e:
+        print(f"[everglades_monitor] Email error: {e}")
