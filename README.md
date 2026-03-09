@@ -361,7 +361,7 @@ cp tasks/web_search_template.py tasks/my_search.py
 enable task: my_search
 ```
 
-Each morning it fetches the top results, sends them to an LLM for a brief summary, and delivers the digest to Telegram. The shared `websearch.py` module can also be imported directly from any task you write.
+Each morning it fetches the top results, sends them to an LLM for a brief summary, and emails the digest to `EMAIL_FORWARD_ADDRESS`. The shared `websearch.py` module can also be imported directly from any task you write.
 
 To set a location for the weather report, add `WEATHER_LOCATION` to your `.env` file:
 
@@ -1123,7 +1123,10 @@ EMAIL_SMTP_PASSWORD=your-app-password
 
 EMAIL_POLL_INTERVAL=60
 EMAIL_ALLOWED_FROM=
+EMAIL_FORWARD_ADDRESS=you@personalemail.com
 ```
+
+**Port 465 (SSL) vs port 587 (STARTTLS):** Both are supported automatically. cPanel and many shared hosts use port 465; Gmail uses 587. Set `EMAIL_SMTP_PORT` to whichever your provider requires.
 
 Leave `EMAIL_IMAP_HOST` blank to disable the email gateway entirely.
 
@@ -1144,13 +1147,13 @@ Leave `EMAIL_IMAP_HOST` blank to disable the email gateway entirely.
 
 ### Configuring the forwarding address
 
-Edit `skills/email_handler.md` and set your forwarding address:
+Set `EMAIL_FORWARD_ADDRESS` in `.env` to the address where you want emails forwarded for human follow-up:
 
 ```
-**Default forward: `sales@yourcompany.com`**
+EMAIL_FORWARD_ADDRESS=you@personalemail.com
 ```
 
-The agent uses this address when it decides an email needs human follow-up (customer inquiries, support requests, etc.).
+The agent reads this address at runtime and uses it when it decides an email needs human attention. Keeping it in `.env` means it stays off GitHub.
 
 ### Sender whitelist
 
