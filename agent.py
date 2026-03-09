@@ -24,6 +24,11 @@ SOCKET_PATH  = "/tmp/molluskai.sock"
 _pending_write: dict = {}
 _pending_write_lock  = threading.Lock()
 
+# Stores the notes from the most recent 'recall: todo' output so that
+# done: N and remove: N can reference items by their displayed number.
+_last_todo_list: list = []
+_last_todo_lock = threading.Lock()
+
 
 # ---------------------------------------------------------------------------
 # Entry point
@@ -208,6 +213,11 @@ def handle_message(text: str, reply_fn) -> None:
         # For the todo project, show only open [ ] items unless 'all' is requested
         if project.lower() == "todo" and not show_all:
             notes = [n for n in notes if n["content"].strip().startswith("[ ]")]
+        # Cache the displayed list so done: N / remove: N can reference by number
+        if project.lower() == "todo":
+            with _last_todo_lock:
+                _last_todo_list.clear()
+                _last_todo_list.extend(notes)
         reply_fn(_format_notes(project, notes, query))
         return
 
@@ -223,13 +233,22 @@ def handle_message(text: str, reply_fn) -> None:
     if lower.startswith("done:"):
         item = text[5:].strip()
         if not item:
-            reply_fn("Usage: done: <item>")
+            reply_fn("Usage: done: <item>  or  done: <number>")
             return
-        matches = memory.find_notes(item, "todo")
-        open_matches = [n for n in matches if n["content"].strip().startswith("[ ]")]
-        if not open_matches:
-            reply_fn(f"No open to-do item found matching: '{item}'")
-            return
+        if item.isdigit():
+            idx = int(item) - 1
+            with _last_todo_lock:
+                if 0 <= idx < len(_last_todo_list):
+                    open_matches = [_last_todo_list[idx]]
+                else:
+                    reply_fn(f"No item #{item} in the last todo list. Use 'recall: todo' to refresh.")
+                    return
+        else:
+            matches = memory.find_notes(item, "todo")
+            open_matches = [n for n in matches if n["content"].strip().startswith("[ ]")]
+            if not open_matches:
+                reply_fn(f"No open to-do item found matching: '{item}'")
+                return
         memory.delete_notes([n["id"] for n in open_matches])
         for n in open_matches:
             body = n["content"].strip()[4:]  # strip "[ ] "
@@ -241,12 +260,21 @@ def handle_message(text: str, reply_fn) -> None:
     if lower.startswith("remove:"):
         item = text[7:].strip()
         if not item:
-            reply_fn("Usage: remove: <item>")
+            reply_fn("Usage: remove: <item>  or  remove: <number>")
             return
-        matches = memory.find_notes(item, "todo")
-        if not matches:
-            reply_fn(f"No to-do item found matching: '{item}'")
-            return
+        if item.isdigit():
+            idx = int(item) - 1
+            with _last_todo_lock:
+                if 0 <= idx < len(_last_todo_list):
+                    matches = [_last_todo_list[idx]]
+                else:
+                    reply_fn(f"No item #{item} in the last todo list. Use 'recall: todo' to refresh.")
+                    return
+        else:
+            matches = memory.find_notes(item, "todo")
+            if not matches:
+                reply_fn(f"No to-do item found matching: '{item}'")
+                return
         memory.delete_notes([n["id"] for n in matches])
         items = ", ".join(n["content"].strip() for n in matches)
         reply_fn(f"Removed from to-do list: {items}")
@@ -615,8 +643,8 @@ def _help_text() -> str:
         model               Show current model
         model: <model-id>   Switch model instantly (saved to .env)
         todo: <item>        Add an item to your to-do list
-        done: <item>        Mark a to-do item as done
-        remove: <item>      Remove a to-do item from the list
+        done: <item or N>   Mark a to-do item done (by text or number from last recall)
+        remove: <item or N> Remove a to-do item (by text or number from last recall)
         recall: todo        Show open to-do items
         recall: todo all    Show full to-do history including completed items
         notes               List all note projects with counts
