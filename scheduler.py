@@ -69,7 +69,7 @@ def discover_tasks() -> list:
         meta = {
             "name":        path.stem,
             "schedule":    None,
-            "enabled":     False,
+            "enabled":     True,
             "description": "",
             "path":        path,
         }

@@ -1,6 +1,6 @@
 # TASK: Web Search — <topic>
 # SCHEDULE: every day at 08:00
-# ENABLED: false
+# ENABLED: true
 # DESCRIPTION: Searches the web for a topic each morning and reports the top 10 results with an AI summary
 
 # --- Configure this task ---
