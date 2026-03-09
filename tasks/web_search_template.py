@@ -9,8 +9,9 @@ TASK_LABEL  = "Example Topic"         # shown in the notification header
 # --------------------------
 
 import requests
+import smtplib, ssl
+from email.mime.text import MIMEText
 import config
-from notify import send
 from websearch import search, format_results
 
 TASK_MODEL = "google/gemini-2.0-flash-001"
@@ -20,17 +21,43 @@ MAX_RESULTS = 10
 def run():
     results = search(SEARCH_TERM, max_results=MAX_RESULTS)
     if not results:
-        send(f"Web search ({TASK_LABEL}): no results returned.")
+        print(f"[web_search] No results for {TASK_LABEL}.")
         return
 
     formatted = format_results(results)
     summary = _summarise(SEARCH_TERM, formatted)
 
-    msg = f"Morning search: {TASK_LABEL}\n\n"
+    body = f"Morning search: {TASK_LABEL}\n\n"
     if summary:
-        msg += f"{summary}\n\n---\n\n"
-    msg += formatted
-    send(msg)
+        body += f"{summary}\n\n---\n\n"
+    body += formatted
+
+    _send_email(f"Morning search: {TASK_LABEL}", body)
+
+
+def _send_email(subject: str, body: str) -> None:
+    to = config.EMAIL_FORWARD_ADDRESS
+    if not to:
+        print("[web_search] EMAIL_FORWARD_ADDRESS not set — skipping email.")
+        return
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"]    = config.EMAIL_SMTP_USER
+    msg["To"]      = to
+    try:
+        if config.EMAIL_SMTP_PORT == 465:
+            with smtplib.SMTP_SSL(config.EMAIL_SMTP_HOST, config.EMAIL_SMTP_PORT, context=ssl.create_default_context()) as s:
+                s.login(config.EMAIL_SMTP_USER, config.EMAIL_SMTP_PASSWORD)
+                s.send_message(msg)
+        else:
+            with smtplib.SMTP(config.EMAIL_SMTP_HOST, config.EMAIL_SMTP_PORT) as s:
+                s.ehlo()
+                s.starttls()
+                s.login(config.EMAIL_SMTP_USER, config.EMAIL_SMTP_PASSWORD)
+                s.send_message(msg)
+        print(f"[web_search] Email sent to {to}")
+    except Exception as e:
+        print(f"[web_search] Email error: {e}")
 
 
 def _summarise(topic: str, results_text: str) -> str:
