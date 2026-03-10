@@ -23,7 +23,9 @@ Inspired by [PicoClaw](https://github.com/sipeed/picoclaw).
 - **Expense tracking** — log purchases by voice or text with automatic categorisation; monthly spending report by category delivered to Telegram
 - **Workout log** — log exercise sessions by voice or text; weekly training summary delivered every Monday morning
 - **To-Do list** — add and complete tasks by voice or text; open items delivered to Telegram each morning
-- **Email gateway** — receive emails via IMAP, auto-reply with the LLM, and forward to a human when needed
+- **Email gateway** — receive emails via IMAP, auto-reply with the LLM, forward to a human when needed, and send outbound emails on demand
+- **Web search** — ask any real-time question; the agent searches DuckDuckGo and summarises results (no API key required)
+- **Task failure alerts** — if a scheduled task crashes, a notification is sent to Telegram immediately
 - **Agent orchestration** — route a question through specialist subagents in parallel, then synthesise their outputs into one response
 - **Low cost** — three-layer context (identity + relevant memories + recent turns) keeps each call to ~3,000 tokens
 - **Readable code** — written to be understood and extended; ideal for learning on Raspberry Pi
@@ -214,10 +216,13 @@ You can also write or edit skill files manually in the `skills/` directory with 
 | `cost_report.md` | Report on AI usage costs from the usage log |
 | `idea_capture.md` | Capture and organise ideas by project; retrieve by theme |
 | `web_monitor.md` | Generate daily keyword monitoring tasks for news, HN, Reddit, or any URL |
+| `web_search.md` | Real-time web search via `[WEB_SEARCH: query]` — no API key required |
 | `diet_log.md` | Log meals by voice or text; agent estimates calories and tracks daily totals |
 | `expense_tracker.md` | Log purchases by voice or text with category; monthly spending report by category |
 | `workout_log.md` | Log exercise sessions by voice or text; weekly training summary every Monday |
 | `todo.md` | Add and complete to-do items by voice or text; open items shown in daily reminder |
+| `email_handler.md` | Handle inbound emails — auto-reply, forward to human, ignore spam |
+| `send_email.md` | Send outbound emails on demand via `[SEND_EMAIL: address \| subject]` |
 
 ---
 
@@ -361,7 +366,7 @@ cp tasks/web_search_template.py tasks/my_search.py
 enable task: my_search
 ```
 
-Each morning it fetches the top results, sends them to an LLM for a brief summary, and emails the digest to `EMAIL_FORWARD_ADDRESS`. The shared `websearch.py` module can also be imported directly from any task you write.
+Each morning it fetches the top results, sends them to an LLM for a brief summary, and emails the digest to `EMAIL_FORWARD_ADDRESS`. The shared `web_search.py` module can also be imported directly from any task you write.
 
 To set a location for the weather report, add `WEATHER_LOCATION` to your `.env` file:
 
@@ -717,7 +722,8 @@ molluskai/
 ├── scheduler.py       # Task discovery and scheduling
 ├── orchestrator.py    # Multi-agent orchestration (ensemble: command)
 ├── transcribe.py      # Voice message transcription (faster-whisper)
-├── websearch.py       # Shared web search utility (DuckDuckGo, no API key)
+├── notify.py          # Shared notification utility for tasks (terminal + Telegram)
+├── web_search.py      # Web search utility (DuckDuckGo, no API key)
 ├── IDENTITY.md        # Agent persona / system prompt
 ├── skills/            # AI prompt templates (markdown, edit freely)
 │   ├── how_to_write_a_skill.md
@@ -725,11 +731,13 @@ molluskai/
 │   ├── cost_report.md
 │   ├── idea_capture.md
 │   ├── web_monitor.md
+│   ├── web_search.md
 │   ├── diet_log.md
 │   ├── expense_tracker.md
 │   ├── workout_log.md
 │   ├── todo.md
-│   └── email_handler.md
+│   ├── email_handler.md
+│   └── send_email.md
 ├── tasks/             # Local automation scripts (Python, edit freely)
 │   ├── daily_report.py          # Daily AI usage summary
 │   ├── diskfree_report.py       # Disk usage alert (>75%)
@@ -1174,6 +1182,16 @@ Customer inquiry about bulk pricing from John Smith.
 ```
 
 The gateway strips this from the reply sent to the customer, sends the auto-reply, and sends a separate forwarded email to `sales@yourcompany.com`. The customer only sees the professional auto-reply.
+
+### Sending outbound email on demand
+
+Ask the agent to send an email from any channel (Telegram, terminal, or another email):
+
+```
+send an email to me@example.com with a summary of what we discussed today
+```
+
+The agent composes the message and sends it via SMTP using the `[SEND_EMAIL:]` directive. No extra configuration is needed beyond the existing SMTP settings.
 
 ### Response time
 

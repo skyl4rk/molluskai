@@ -131,7 +131,13 @@ def _run_task(path: Path) -> None:
         else:
             print(f"[scheduler] {path.name} has no run() function — skipping.")
     except Exception as e:
-        print(f"[scheduler] Error in task '{path.name}': {e}")
+        msg = f"Task '{path.stem}' failed: {e}"
+        print(f"[scheduler] {msg}")
+        try:
+            from notify import send
+            send(f"⚠️ {msg}")
+        except Exception:
+            pass
 
 
 def _register(task: dict) -> bool:

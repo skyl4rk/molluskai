@@ -343,19 +343,33 @@ def handle_message(text: str, reply_fn) -> None:
         reply_fn(f"Error contacting OpenRouter: {e}")
         return
 
-    # --- Agentic file-read loop ---
-    # If the LLM responds with [READ_FILE: path], read the file and call again.
-    # Repeats up to 3 times so the LLM can read multiple files if needed.
+    # --- Agentic loop: file reads and web searches ---
+    # If the LLM responds with [READ_FILE: path] or [WEB_SEARCH: query],
+    # fulfil the request and call the LLM again (up to 3 iterations).
     for _ in range(3):
         _, file_req = _extract_read_file_directive(response)
-        if not file_req:
+        _, search_req = _extract_web_search_directive(response)
+
+        if file_req:
+            file_content = _safe_read_file(file_req["path"])
+            messages.append({"role": "assistant", "content": response})
+            messages.append({
+                "role": "user",
+                "content": f"[File: {file_req['path']}]\n{file_content}",
+            })
+        elif search_req:
+            import web_search
+            print(f"[agent] Web search: {search_req['query']}")
+            results = web_search.search(search_req["query"])
+            print(f"[agent] Web search returned {len(results)} chars")
+            messages.append({"role": "assistant", "content": response})
+            messages.append({
+                "role": "user",
+                "content": f"[Web Search results for '{search_req['query']}']\n{results}\n[End of search results — compose your answer using the above]",
+            })
+        else:
             break
-        file_content = _safe_read_file(file_req["path"])
-        messages.append({"role": "assistant", "content": response})
-        messages.append({
-            "role": "user",
-            "content": f"[File: {file_req['path']}]\n{file_content}",
-        })
+
         try:
             response = llm.chat(messages, system)
         except Exception as e:
@@ -371,6 +385,21 @@ def handle_message(text: str, reply_fn) -> None:
         f"User: {text}\nAssistant: {response}",
         role="conversation",
     )
+
+    # Check if the LLM wants to send an outbound email
+    cleaned_response, send_email = _extract_send_email_directive(response)
+    if send_email:
+        import email_bot
+        try:
+            email_bot.send_email(
+                to      = send_email["to"],
+                subject = send_email["subject"],
+                body    = send_email["body"],
+            )
+            reply_fn(cleaned_response + f"\n\n_(Email sent to {send_email['to']})_")
+        except Exception as e:
+            reply_fn(cleaned_response + f"\n\n_(Failed to send email: {e})_")
+        return
 
     # Check if the LLM wants to save a note directly to memory
     cleaned_response, note = _extract_note_directive(response)
@@ -728,6 +757,37 @@ def _safe_read_file(path_str: str) -> str:
         return content
     except Exception as e:
         return f"[Error reading file: {e}]"
+
+
+def _extract_web_search_directive(response: str) -> tuple:
+    """
+    Detect [WEB_SEARCH: query] in an LLM response.
+    Returns (response, {"query": str} | None)
+    """
+    pattern = re.compile(r'\[WEB_SEARCH:\s*([^\]]+)\]', re.IGNORECASE)
+    match = pattern.search(response)
+    if match:
+        return response, {"query": match.group(1).strip()}
+    return response, None
+
+
+def _extract_send_email_directive(response: str) -> tuple:
+    """
+    Detect [SEND_EMAIL: address | Subject]body[/SEND_EMAIL] in an LLM response.
+    Returns (cleaned_response, {"to": str, "subject": str, "body": str} | None)
+    """
+    pattern = re.compile(
+        r'\[SEND_EMAIL:\s*([^|\]]+)\|([^\]]*)\](.*?)\[/SEND_EMAIL\]',
+        re.DOTALL | re.IGNORECASE,
+    )
+    match = pattern.search(response)
+    if match:
+        to      = match.group(1).strip()
+        subject = match.group(2).strip()
+        body    = match.group(3).strip()
+        cleaned = pattern.sub("", response).strip()
+        return cleaned, {"to": to, "subject": subject, "body": body}
+    return response, None
 
 
 def _extract_note_directive(response: str) -> tuple:

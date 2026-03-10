@@ -180,6 +180,11 @@ def _extract_forward_directive(response: str) -> tuple:
 # SMTP sending
 # ---------------------------------------------------------------------------
 
+def send_email(to: str, subject: str, body: str) -> None:
+    """Public wrapper — send an outbound email. Usable by agent.py and tasks."""
+    _send_email(to, subject, body)
+
+
 def _send_email(to: str, subject: str, body: str) -> None:
     """Send a plain-text email via SMTP. Uses SMTP_SSL for port 465, STARTTLS otherwise."""
     msg = MIMEMultipart()
