@@ -1,8 +1,10 @@
-# Web Monitor — Daily Keyword Reports
+# Web Monitor — Daily Keyword Reports from RSS / HN / Reddit
 
 ## Purpose
 
-Create scheduled tasks that monitor web sources for a keyword and send a daily digest to Telegram. No API keys required for any of the sources below.
+Create scheduled tasks that monitor **RSS feeds, Hacker News, Reddit, or a specific URL** for a keyword and send a daily digest to Telegram.
+
+**This skill is for RSS/feed-based monitoring only.** If the user asks for a general web search task (DuckDuckGo, Google, "search the web"), use the `web_search.md` skill and the `web_search` module instead — not this skill.
 
 ## When the user asks for a web monitor
 
@@ -12,6 +14,64 @@ Ask (or infer from context):
 3. **What time** to deliver the report (default: every day at 08:00)
 
 Then generate a complete task using the appropriate template below and wrap it in `[SAVE_TASK: filename.py]`.
+
+---
+
+## Template 0 — DuckDuckGo web search task
+
+Use for: general web search, brand monitoring, searching the open web for any term.
+
+```python
+# TASK: Web Search — {keyword}
+# SCHEDULE: every day at 08:00
+# ENABLED: false
+# DESCRIPTION: Daily DuckDuckGo search for '{keyword}' — LLM summary emailed to EMAIL_FORWARD_ADDRESS
+
+import sys
+from pathlib import Path
+PROJECT_DIR = Path(__file__).parent.parent
+sys.path.insert(0, str(PROJECT_DIR))
+
+import requests
+import config
+import web_search
+import email_bot
+
+SEARCH_TERM = "{keyword}"
+TASK_LABEL  = "{label}"
+TASK_MODEL  = "google/gemini-2.0-flash-001"
+MAX_RESULTS = 10
+
+
+def run():
+    results = web_search.search(SEARCH_TERM, max_results=MAX_RESULTS)
+    summary = _summarise(SEARCH_TERM, results)
+
+    body = f"Morning search: {TASK_LABEL}\n\n"
+    if summary:
+        body += f"{summary}\n\n---\n\n"
+    body += results
+
+    email_bot.send_email(
+        to      = config.EMAIL_FORWARD_ADDRESS,
+        subject = f"Morning search: {TASK_LABEL}",
+        body    = body,
+    )
+
+
+def _summarise(topic, results_text):
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={"Authorization": f"Bearer {config.OPENROUTER_API_KEY}"},
+            json={"model": TASK_MODEL, "messages": [{"role": "user", "content":
+                f"Summarise these web search results for '{topic}' in 2-3 sentences:\n\n{results_text}"}]},
+            timeout=60,
+        )
+        return response.json()["choices"][0]["message"]["content"].strip()
+    except Exception:
+        return ""
+```
 
 ---
 

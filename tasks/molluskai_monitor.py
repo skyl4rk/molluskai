@@ -1,12 +1,7 @@
-# TASK: Web Search — <topic>
+# TASK: MolluskAI Mentions Monitor
 # SCHEDULE: every day at 08:00
-# ENABLED: true
-# DESCRIPTION: Searches the web for a topic each morning and reports the top 10 results with an AI summary
-
-# --- Configure this task ---
-SEARCH_TERM = "example search term"   # change this
-TASK_LABEL  = "Example Topic"         # shown in the notification header
-# --------------------------
+# ENABLED: false
+# DESCRIPTION: Daily DuckDuckGo search for 'molluskai' — LLM summary emailed to EMAIL_FORWARD_ADDRESS
 
 import sys
 from pathlib import Path
@@ -18,7 +13,9 @@ import config
 import web_search
 import email_bot
 
-TASK_MODEL = "google/gemini-2.0-flash-001"
+SEARCH_TERM = "molluskai"
+TASK_LABEL  = "MolluskAI Mentions"
+TASK_MODEL  = "google/gemini-2.0-flash-001"
 MAX_RESULTS = 10
 
 
@@ -36,16 +33,14 @@ def run():
         subject = f"Morning search: {TASK_LABEL}",
         body    = body,
     )
-    print(f"[web_search] Email sent to {config.EMAIL_FORWARD_ADDRESS}")
-
+    print(f"[molluskai_monitor] Email sent to {config.EMAIL_FORWARD_ADDRESS}")
 
 
 def _summarise(topic: str, results_text: str) -> str:
-    """Ask the LLM for a 2–3 sentence summary of today's search results."""
     prompt = (
         f"Here are today's top web search results for '{topic}':\n\n"
         f"{results_text}\n\n"
-        "Write a concise 2–3 sentence summary of the key themes or news in these results. "
+        "Write a concise 2-3 sentence summary of the key themes or findings. "
         "Be factual and direct."
     )
     try:
@@ -65,5 +60,9 @@ def _summarise(topic: str, results_text: str) -> str:
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"].strip()
     except Exception as e:
-        print(f"[web_search] LLM error: {e}")
+        print(f"[molluskai_monitor] LLM error: {e}")
         return ""
+
+
+if __name__ == "__main__":
+    run()
