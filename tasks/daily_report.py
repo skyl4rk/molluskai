@@ -21,7 +21,7 @@ a pre-formatted message directly via the Telegram Bot API.
 """
 
 import sys
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 # Add the project root to sys.path so we can import config and other modules
@@ -44,8 +44,8 @@ def run():
         send("MolluskAI: Usage log is empty.")
         return
 
-    today       = str(date.today())
-    today_lines = [l for l in lines if l.startswith(today)]
+    yesterday       = str(date.today() - timedelta(days=1))
+    today_lines     = [l for l in lines if l.startswith(yesterday)]
 
     total_prompt     = 0
     total_completion = 0
@@ -55,10 +55,10 @@ def run():
         try:
             parts = {}
             for segment in line.split("|"):
-                segment = segment.strip()
-                if "=" in segment:
-                    k, v = segment.split("=", 1)
-                    parts[k.strip()] = v.strip()
+                for token in segment.strip().split():
+                    if "=" in token:
+                        k, v = token.split("=", 1)
+                        parts[k.strip()] = v.strip()
             total_prompt     += int(parts.get("prompt", 0))
             total_completion += int(parts.get("completion", 0))
         except Exception:
@@ -71,7 +71,7 @@ def run():
     estimated_cost = (total / 1_000_000) * 0.50
 
     message = (
-        f"MolluskAI Daily Report — {today}\n"
+        f"MolluskAI Daily Report — {yesterday}\n"
         f"• Calls today: {calls}\n"
         f"• Tokens today: {total:,}  "
         f"(prompt: {total_prompt:,}  completion: {total_completion:,})\n"
