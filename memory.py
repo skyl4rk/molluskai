@@ -361,7 +361,7 @@ def get_notes(project: str, query: str = None, n: int = 50) -> list:
                 # KNN search across all memories, then filter to this project
                 rows = conn.execute(
                     """
-                    SELECT m.content, m.role, m.source, m.timestamp
+                    SELECT m.id, m.content, m.role, m.source, m.timestamp
                     FROM memories m
                     INNER JOIN (
                         SELECT rowid, distance FROM memories_vec
@@ -397,12 +397,11 @@ def get_notes(project: str, query: str = None, n: int = 50) -> list:
                 results = [r for _, r in scored[:n]]
                 for r in results:
                     r.pop("embedding", None)
-                    r.pop("id", None)
                 return results
 
     # No query or no embeddings — return all notes chronologically
     rows = conn.execute(
-        "SELECT content, role, source, timestamp FROM memories "
+        "SELECT id, content, role, source, timestamp FROM memories "
         "WHERE role='note' AND lower(source)=lower(?) "
         "ORDER BY timestamp DESC LIMIT ?",
         (project, n),
