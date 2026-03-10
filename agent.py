@@ -408,6 +408,31 @@ def handle_message(text: str, reply_fn) -> None:
         reply_fn(cleaned_response + f"\n\n_(Note saved to '{note['project']}')_")
         return
 
+    # Check if the LLM wants to update the behavioral rules file
+    cleaned_response, rules_content = _extract_save_rules_directive(response)
+    if rules_content:
+        rules_path = PROJECT_DIR / "RULES.md"
+        preview = "\n".join(rules_content.splitlines()[:8])
+        if len(rules_content.splitlines()) > 8:
+            preview += "\n..."
+        display = (
+            f"{cleaned_response}\n\n"
+            f"──────────────────────────────\n"
+            f"Ready to update RULES.md\n"
+            f"──────────────────────────────\n"
+            f"{preview}\n"
+            f"──────────────────────────────\n"
+            f"Reply yes to save, no to cancel."
+        )
+        with _pending_write_lock:
+            _pending_write.update({
+                "path":    str(rules_path),
+                "content": rules_content,
+                "type":    "rules",
+            })
+        reply_fn(display)
+        return
+
     # Check if the LLM wants to write a skill or task file
     cleaned_response, pending = _extract_save_directive(response)
     if pending:
@@ -448,11 +473,14 @@ def _build_context(user_message: str) -> tuple:
     """
     import memory
 
-    # Layer 1: identity + all skill instructions
+    # Layer 1: identity + behavioral rules + all skill instructions
     identity    = _load_file(PROJECT_DIR / "IDENTITY.md",
                              fallback="You are a helpful assistant.")
+    rules_text  = _load_file(PROJECT_DIR / "RULES.md")
     skills_text = _load_skills()
     system_parts = [identity]
+    if rules_text:
+        system_parts.append("--- Behavioral Rules ---\n" + rules_text)
     if skills_text:
         system_parts.append("--- Skills ---\n" + skills_text)
     system = "\n\n".join(system_parts)
@@ -725,7 +753,7 @@ def _safe_read_file(path_str: str) -> str:
     Everything else (including .env, data/memory.db, config.py) is denied.
     """
     _ALLOWED_DIRS  = {"skills", "tasks"}
-    _ALLOWED_FILES = {"data/usage.log", "IDENTITY.md", "README.md"}
+    _ALLOWED_FILES = {"data/usage.log", "IDENTITY.md", "README.md", "RULES.md"}
 
     try:
         project_root = PROJECT_DIR.resolve()
@@ -757,6 +785,23 @@ def _safe_read_file(path_str: str) -> str:
         return content
     except Exception as e:
         return f"[Error reading file: {e}]"
+
+
+def _extract_save_rules_directive(response: str) -> tuple:
+    """
+    Detect [SAVE_RULES]content[/SAVE_RULES] in an LLM response.
+    Returns (cleaned_response, content_str | None)
+    """
+    pattern = re.compile(
+        r'\[SAVE_RULES\](.*?)\[/SAVE_RULES\]',
+        re.DOTALL | re.IGNORECASE,
+    )
+    match = pattern.search(response)
+    if match:
+        content = match.group(1).strip()
+        cleaned = pattern.sub("", response).strip()
+        return cleaned, content
+    return response, None
 
 
 def _extract_web_search_directive(response: str) -> tuple:
