@@ -37,3 +37,6 @@ Thumbs.db
 
 # Development notes (not part of the project)
 developmentconversation.txt
+
+# Personal tasks (not part of the project)
+tasks/postemployment_monitor.py
