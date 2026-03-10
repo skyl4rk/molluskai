@@ -62,11 +62,11 @@ def main():
 
     # Step 4 — Start Telegram gateway (background daemon thread, if token set)
     import telegram_bot
-    telegram_bot.start(handle_message)
+    telegram_bot.start(lambda t, r: handle_message(t, r, source="telegram"))
 
     # Step 5 — Start Email gateway (background daemon thread, if configured)
     import email_bot
-    email_bot.start(handle_message)
+    email_bot.start(lambda t, r: handle_message(t, r, source="email"))
 
     # Step 6 — Start Unix socket server (allows --terminal SSH sessions)
     _start_socket_server()
@@ -88,12 +88,13 @@ def main():
 # Central message dispatcher
 # ---------------------------------------------------------------------------
 
-def handle_message(text: str, reply_fn) -> None:
+def handle_message(text: str, reply_fn, source: str = "terminal") -> None:
     """
-    Process one message from any source (terminal or Telegram).
+    Process one message from any source (terminal, telegram, or email).
 
     text:     The user's input string.
     reply_fn: A callable that sends a response string to the user.
+    source:   "terminal", "telegram", or "email" — used for security checks.
 
     Built-in commands are handled locally (no LLM call, no cost).
     Everything else is sent to the LLM with a three-layer context.
@@ -109,20 +110,42 @@ def handle_message(text: str, reply_fn) -> None:
     lower = text.lower()
 
     # --- Pending file-write confirmation ---
-    # When the LLM has proposed saving a skill or task file, the next message
-    # from the user is treated as confirmation ("yes") or cancellation ("no").
+    # When the LLM has proposed saving a skill, task, or rules file, the next
+    # message from the user is treated as confirmation ("yes") or cancellation.
+    # Email is blocked from confirming — prevents prompt-injection attacks where
+    # a malicious email body triggers a save and a follow-up "yes" confirms it.
     with _pending_write_lock:
         pending = dict(_pending_write)
     if pending:
+        if source == "email":
+            # Silently drop — do not let email confirm or cancel pending writes
+            with _pending_write_lock:
+                _pending_write.clear()
+            reply_fn("A pending action was cancelled because email cannot be used to confirm sensitive operations. Please confirm via Telegram or terminal.")
+            return
         if lower in ("yes", "y", "confirm"):
             with _pending_write_lock:
                 ftype   = _pending_write.get("type", "file")
-                path    = Path(_pending_write["path"])
-                content = _pending_write["content"]
+                path    = _pending_write.get("path", "")
+                content = _pending_write.get("content", "")
+                email   = _pending_write.get("email")
                 _pending_write.clear()
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(content)
-            reply_fn(f"Saved {ftype}: {path.name}\nPath: {path}")
+            if ftype == "email" and email:
+                import email_bot
+                try:
+                    email_bot.send_email(
+                        to      = email["to"],
+                        subject = email["subject"],
+                        body    = email["body"],
+                    )
+                    reply_fn(f"Email sent to {email['to']}.")
+                except Exception as e:
+                    reply_fn(f"Failed to send email: {e}")
+            else:
+                p = Path(path)
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text(content)
+                reply_fn(f"Saved {ftype}: {p.name}\nPath: {p}")
         elif lower in ("no", "n", "cancel"):
             with _pending_write_lock:
                 ftype = _pending_write.get("type", "file")
@@ -386,19 +409,43 @@ def handle_message(text: str, reply_fn) -> None:
         role="conversation",
     )
 
-    # Check if the LLM wants to send an outbound email
+    # Check if the LLM wants to send an outbound email.
+    # If the request came via email, require confirmation via Telegram/terminal
+    # to prevent prompt-injection exfiltration attacks.
     cleaned_response, send_email = _extract_send_email_directive(response)
     if send_email:
-        import email_bot
-        try:
-            email_bot.send_email(
-                to      = send_email["to"],
-                subject = send_email["subject"],
-                body    = send_email["body"],
+        if source == "email":
+            preview = send_email["body"][:200] + ("..." if len(send_email["body"]) > 200 else "")
+            display = (
+                f"{cleaned_response}\n\n"
+                f"──────────────────────────────\n"
+                f"Email requested (from email source — confirmation required)\n"
+                f"To: {send_email['to']}\n"
+                f"Subject: {send_email['subject']}\n"
+                f"──────────────────────────────\n"
+                f"{preview}\n"
+                f"──────────────────────────────\n"
+                f"Reply yes via Telegram or terminal to send, no to cancel."
             )
-            reply_fn(cleaned_response + f"\n\n_(Email sent to {send_email['to']})_")
-        except Exception as e:
-            reply_fn(cleaned_response + f"\n\n_(Failed to send email: {e})_")
+            with _pending_write_lock:
+                _pending_write.update({
+                    "type":    "email",
+                    "path":    "",
+                    "content": "",
+                    "email":   send_email,
+                })
+            reply_fn(display)
+        else:
+            import email_bot
+            try:
+                email_bot.send_email(
+                    to      = send_email["to"],
+                    subject = send_email["subject"],
+                    body    = send_email["body"],
+                )
+                reply_fn(cleaned_response + f"\n\n_(Email sent to {send_email['to']})_")
+            except Exception as e:
+                reply_fn(cleaned_response + f"\n\n_(Failed to send email: {e})_")
         return
 
     # Check if the LLM wants to save a note directly to memory
@@ -991,7 +1038,7 @@ def _handle_socket_client(conn) -> None:
             data = recv_exactly(length)
             if not data:
                 break
-            handle_message(data.decode("utf-8"), send_framed)
+            handle_message(data.decode("utf-8"), send_framed, source="terminal")
             send_done()
     except Exception as e:
         print(f"[socket] Client error: {e}")
@@ -1091,7 +1138,7 @@ def _terminal_loop() -> None:
         if not text:
             continue
 
-        handle_message(text, lambda r: print(f"\nagent> {r}\n"))
+        handle_message(text, lambda r: print(f"\nagent> {r}\n"), source="terminal")
 
 
 if __name__ == "__main__":
