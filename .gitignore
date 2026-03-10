@@ -40,3 +40,5 @@ developmentconversation.txt
 
 # Personal tasks (not part of the project)
 tasks/postemployment_monitor.py
+tasks/everglades_challenge_monitor.py
+tasks/molluskai_monitor.py
