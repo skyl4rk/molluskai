@@ -3,6 +3,8 @@
 # ENABLED: false
 # DESCRIPTION: Generates a daily stoic quote and reflection using a specified model, sends to Telegram
 
+from datetime import date
+
 import requests
 import config
 from notify import send
@@ -12,7 +14,8 @@ TASK_MODEL = "anthropic/claude-3-5-haiku"
 
 
 def run():
-    reply = _ask("Give me a single stoic quote and a one-sentence reflection on how it applies to daily life. Keep it under 60 words total.")
+    today = date.today().isoformat()
+    reply = _ask(f"Today is {today}. Give me a single stoic quote and a one-sentence reflection on how it applies to daily life. Keep it under 60 words total.")
     if reply:
         send(f"Daily thought:\n\n{reply}")
 
