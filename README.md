@@ -335,7 +335,7 @@ The task runs immediately in the background and sends its output to Telegram. Th
 
 | Task | Schedule | What it does |
 |------|----------|-------------|
-| `daily_report` | every day at 08:00 | Sends yesterday's AI token usage summary to Telegram |
+| `cost_report` | every day at 05:06 | Sends a rolling 7-day AI token usage and cost summary to Telegram |
 | `diskfree_report` | every day at 08:00 | Alerts if the main disk exceeds 75% usage |
 | `diet_morning_report` | every day at 07:30 | Sends yesterday's food log and calorie total |
 | `expense_monthly_report` | 1st of each month | Sends last month's spending grouped by category |
@@ -739,7 +739,7 @@ molluskai/
 │   ├── email_handler.md
 │   └── send_email.md
 ├── tasks/             # Local automation scripts (Python, edit freely)
-│   ├── daily_report.py          # Daily AI usage summary
+│   ├── cost_report.py           # Rolling 7-day AI usage and cost summary
 │   ├── diskfree_report.py       # Disk usage alert (>75%)
 │   ├── diet_morning_report.py   # Yesterday's food log and calories
 │   ├── expense_monthly_report.py # Monthly spending by category
